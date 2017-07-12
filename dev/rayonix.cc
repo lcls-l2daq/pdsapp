@@ -1,4 +1,4 @@
-// $Id$
+// $Id: rayonix.cc 4721 2014-09-09 21:39:52Z caf@SLAC.STANFORD.EDU $
 
 #include "pdsdata/xtc/DetInfo.hh"
 

@@ -1,4 +1,4 @@
-// $Id$
+// $Id: ExportStatus.hh 6180 2016-07-07 01:05:24Z tookey@SLAC.STANFORD.EDU $
 
 #ifndef Pds_ExportStatus_hh
 #define Pds_ExportStatus_hh
@@ -26,8 +26,6 @@
         "\"run_mbytes\" : %llu,"      \
         "\"event_count\" : %llu,"     \
         "\"damage_count\" : %llu,"    \
-        "\"config_type\" : \"%s\","   \
-        "\"recording\" : %u,"         \
         "\"station\" : %u,"           \
         "\"control_state\" : \"%s\""  \
       "}"                             \

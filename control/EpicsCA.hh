@@ -4,7 +4,7 @@
 //--------------------------------------------------------------------------
 //
 // File and Version Information:
-// 	$Id$
+// 	$Id: EpicsCA.hh 193 2009-07-22 22:43:37Z weaver $
 //
 // Environment:
 //      This software was developed for the BaBar collaboration.  If you

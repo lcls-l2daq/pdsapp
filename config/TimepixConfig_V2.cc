@@ -1,4 +1,4 @@
-// $Id$
+// $Id: TimepixConfig_V2.cc 3657 2013-08-30 23:59:39Z weaver $
 
 #include "pdsapp/config/TimepixConfig_V2.hh"
 #include "pdsapp/config/TimepixConfigDefaults.hh"

@@ -51,11 +51,6 @@ namespace Pds {
     {
     }
   public:
-    XtcMonitorServer::Result events(Dgram* dg) {
-      if (XtcMonitorServer::events(dg) == XtcMonitorServer::Handled)
-        _deleteDatagram(dg);
-      return XtcMonitorServer::Deferred;
-    }
     Dgram* newDatagram() 
     { 
       return (Dgram*)new char[_sizeofBuffers];

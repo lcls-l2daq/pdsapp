@@ -18,12 +18,11 @@ libincs_l3sacla := pdsdata/include ndarray/include boost/include
 libsrcs_l3saclacompound := L3SACLACompoundModule.cc
 libincs_l3saclacompound := pdsdata/include ndarray/include boost/include 
 
-tgtnames := event segtest sourcetest bldtest source montest showPartitions killPartition control bldClientTest bldServerTest bldMonitor xtcdump currentexp showPlatform
+tgtnames := event segtest bldtest montest showPartitions killPartition control bldClientTest bldServerTest bldMonitor xtcdump currentexp showPlatform
 #tgtnames := segtest sourcetest bldtest source montest showPartitions killPartition control bldClientTest bldServerTest xtcdump currentexp
-#tgtnames := findSource
 
 commonlibs := pdsdata/xtcdata pdsdata/psddl_pdsdata pds/service pds/collection pds/xtc pds/mon pds/vmon pds/utility pds/management pds/client
-commonlibs += pds/pnccdFrameV0
+#commonlibs += pds/pnccdFrameV0
 
 liblibs_tools := offlinedb/mysqlclient offlinedb/offlinedb pds/offlineclient
 libincs_tools := offlinedb/include pdsdata/include ndarray/include boost/include 
@@ -43,29 +42,19 @@ tgtlibs_control := $(commonlibs)
 tgtslib_control := $(USRLIBDIR)/rt
 tgtincs_control := pdsdata/include ndarray/include boost/include  
 
-tgtsrcs_source := source.cc
-tgtlibs_source := $(commonlibs)
-tgtslib_source := $(USRLIBDIR)/rt $(USRLIBDIR)/pthread
-tgtincs_source := pdsdata/include
-
-tgtsrcs_sourcetest := sourcetest.cc
-tgtlibs_sourcetest := $(commonlibs)
-tgtslib_sourcetest := $(USRLIBDIR)/rt $(USRLIBDIR)/pthread
-tgtincs_sourcetest := pdsdata/include
-
 tgtsrcs_bldtest := bldtest.cc
 tgtlibs_bldtest := $(commonlibs)
-tgtslib_bldtest := $(USRLIBDIR)/rt $(USRLIBDIR)/pthread
+tgtslib_bldtest := $(USRLIBDIR)/rt
 tgtincs_bldtest := pdsdata/include
 
 tgtsrcs_montest := montest.cc
 tgtlibs_montest := $(commonlibs) pds/mon
-tgtslib_montest := $(USRLIBDIR)/rt $(USRLIBDIR)/pthread
+tgtslib_montest := $(USRLIBDIR)/rt
 tgtincs_montest := pdsdata/include ndarray/include boost/include 
 
 tgtsrcs_showPartitions := showPartitions.cc
 tgtlibs_showPartitions := $(commonlibs)
-tgtslib_showPartitions := $(USRLIBDIR)/rt $(USRLIBDIR)/pthread
+tgtslib_showPartitions := $(USRLIBDIR)/rt
 tgtincs_showPartitions := pdsdata/include
 
 tgtsrcs_killPartition := killPartition.cc
@@ -75,18 +64,18 @@ tgtincs_killPartition := pdsdata/include
 
 tgtsrcs_showPlatform := showPlatform.cc
 tgtlibs_showPlatform := $(commonlibs)
-tgtslib_showPlatform := $(USRLIBDIR)/rt $(USRLIBDIR)/pthread
+tgtslib_showPlatform := $(USRLIBDIR)/rt
 tgtincs_showPlatform := pdsdata/include ndarray/include boost/include
 
 
 tgtsrcs_bldClientTest := bldClientTest.cc bldClientTest.hh
 tgtlibs_bldClientTest := pds/service pdsdata/xtcdata
-tgtslib_bldClientTest := $(USRLIBDIR)/rt $(USRLIBDIR)/pthread
+tgtslib_bldClientTest := $(USRLIBDIR)/rt
 
 tgtsrcs_bldServerTest := bldServerTest.cpp bldServerTest.h
 tgtlibs_bldServerTest := pds/service
 tgtlibs_bldServerTest += $(commonlibs)
-tgtslib_bldServerTest := $(USRLIBDIR)/rt $(USRLIBDIR)/pthread
+tgtslib_bldServerTest := $(USRLIBDIR)/rt
 tgtincs_bldServerTest := pdsdata/include
 
 tgtsrcs_bldMonitor := bldMonitor.cc bldMonitor.hh 
@@ -137,4 +126,23 @@ tgtsrcs_findSource := findSource.cc
 tgtlibs_findSource := $(commonlibs)
 tgtslib_findSource := $(USRLIBDIR)/rt
 tgtincs_findSource := pdsdata/include
+
+tgtsrcs_source := source.cc
+tgtlibs_source := $(commonlibs)
+tgtslib_source := $(USRLIBDIR)/rt
+tgtincs_source := pdsdata/include
+
+
+#
+#  LCLS-II development
+#
+libnames := tools
+libsrcs_tools := EventOptions.cc Recorder.cc RecorderQ.cc StripTransient.cc
+libsrcs_tools += TestApp.cc
+liblibs_tools := 
+libincs_tools := offlinedb/include pdsdata/include ndarray/include boost/include 
+
+libnames += padmon
+
+tgtnames := showPartitions source
 

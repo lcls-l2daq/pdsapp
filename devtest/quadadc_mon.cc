@@ -27,6 +27,7 @@
 #include "pdsdata/psddl/bld.ddl.h"
 
 #include "hsd/Module.hh"
+#define QuadAdc HSD
 
 extern int optind;
 
@@ -58,14 +59,15 @@ namespace Pds {
                     unsigned numberofEvBuffers, 
                     unsigned numberofClients) :
       XtcMonitorServer(tag,
-                       sizeofBuffers,
+                       sizeofBuffers*(numberofEvBuffers+numberofTrBuffers),
                        numberofEvBuffers,
                        numberofClients)
     { 
-      _init();
+      char* shm = _init(); 
       
       for(unsigned i=0; i<numberofEvBuffers+numberofTrBuffers; i++) {
-        _pool.push(new char[sizeofBuffers]);
+        _pool.push(shm);
+        shm += sizeofBuffers;
       }
     }
     ~MyMonitorServer() 
@@ -107,8 +109,8 @@ void MyMonitorServer::datagram(TransitionId::Value tr)
                                   ClockTime(tv.tv_sec,tv.tv_nsec), 
                                   TimeStamp(0,0x1ffff,0,0));
     new((char*)&dg->xtc) Xtc(TypeId(TypeId::Id_Xtc,0), segInfo);
-    if (XtcMonitorServer::events(dg) == XtcMonitorServer::Deferred)
-      _pool.pop();
+    XtcMonitorServer::events(dg);
+    _pool.pop();
   }
   else {
     printf("Transition dropped\n");
@@ -136,8 +138,8 @@ void MyMonitorServer::datagram(TransitionId::Value tr,
       char* p  = new((char*)src->alloc(xtc[i].xtc.sizeofPayload())) char[xtc[i].xtc.sizeofPayload()];
       memcpy(p,xtc[i].payload,xtc[i].xtc.sizeofPayload());
     }
-    if (XtcMonitorServer::events(dg) == XtcMonitorServer::Deferred)
-      _pool.pop();
+    XtcMonitorServer::events(dg);
+    _pool.pop();
   }
   else {
     printf("Transition dropped\n");
@@ -152,7 +154,7 @@ void usage(const char* p) {
   printf("\t-V          : Dump out all events");
 }
 
-static Pds::HSD::Module* reg=0;
+static Pds::QuadAdc::Module* reg=0;
 
 void sigHandler( int signal ) {
   if (reg) {
@@ -162,16 +164,40 @@ void sigHandler( int signal ) {
   ::exit(signal);
 }
 
+static void* inp_thread(void* arg)
+{
+  Pds::QuadAdc::Module& p = *reinterpret_cast<Pds::QuadAdc::Module*>(arg);
+
+  while(1) {
+    printf("offs: ");
+    for(unsigned i=0; i<8; i++) {
+      unsigned v = p.get_offset(i);
+      printf("%u ",v);
+    }
+    printf("\n");
+
+    unsigned chan,v;
+    while( scanf("%u %u",&chan,&v) != 2 )
+      ;
+
+    p.set_offset(chan,v);
+    usleep(100);
+  }
+
+  return 0;
+}
+
 int main(int argc, char** argv) {
   extern char* optarg;
   char evrid='a';
   unsigned length=16;  // multiple of 16
   bool lTest=false;
-  Pds::HSD::Module::TestPattern pattern = Pds::HSD::Module::Flash11;
+  Pds::QuadAdc::Module::TestPattern pattern = Pds::QuadAdc::Module::Flash11;
   int interleave = -1;
   unsigned delay=0;
   unsigned prescale=1;
   int adcSyncDelay=-1;
+  bool lCalib=false;
 
   ThreadArgs args;
   args.fd = -1;
@@ -181,8 +207,9 @@ int main(int argc, char** argv) {
 
   int c;
   bool lUsage = false;
-  while ( (c=getopt( argc, argv, "I:r:v:A:D:P:S:R:T:Vh")) != EOF ) {
+  while ( (c=getopt( argc, argv, "I:r:v:A:D:P:S:R:T:CVh")) != EOF ) {
     switch(c) {
+    case 'C': lCalib     = true; break;
     case 'I': interleave = atoi(optarg); break;
     case 'D': delay      = strtoul(optarg,NULL,0); break;
     case 'P': prescale   = strtoul(optarg,NULL,0); break;
@@ -204,7 +231,7 @@ int main(int argc, char** argv) {
       break;
     case 'T':
       lTest = true;
-      pattern = (Pds::HSD::Module::TestPattern)strtoul(optarg,NULL,0);
+      pattern = (Pds::QuadAdc::Module::TestPattern)strtoul(optarg,NULL,0);
       break;
     case 'V':
       lVerbose = true;
@@ -263,6 +290,7 @@ int main(int argc, char** argv) {
   //  Enabling the test pattern causes a realignment of the clocks
   //   (avoid it, if possible)
   //
+  //  p->i2c_sw_control.select(Pds::QuadAdc::I2cSwitch::PrimaryFmc); 
   p->disable_test_pattern();
   if (lTest) {
     p->enable_test_pattern(pattern);
@@ -322,6 +350,17 @@ int main(int argc, char** argv) {
   _srv->datagram(TransitionId::BeginCalibCycle);
   _srv->datagram(TransitionId::Enable);
 
+  //
+  //  Create thread for user input
+  //
+  if (lCalib) {
+    pthread_attr_t tattr;
+    pthread_attr_init(&tattr);
+    pthread_t tid;
+    if (pthread_create(&tid, &tattr, &inp_thread, p))
+      perror("Error creating input thread");
+  }
+
   p->start();
 
   uint32_t* data = new uint32_t[1<<24];
@@ -342,6 +381,18 @@ int main(int argc, char** argv) {
       //  timeout in driver
       continue;
     }
+
+    if (nPrint || lVerbose) {
+      printf("EVENT  [0x%x]:",(data[1]&0xffff));
+      unsigned ilimit = lVerbose ? nb : 16;
+      for(unsigned i=0; i<ilimit; i++)
+        printf(" %08x",data[i]);
+      printf("\n");
+      nPrint--;
+    }
+
+    //  Overwrite p[7] so it looks like a Generic1DData
+    data[7] = 4*nb - 8*sizeof(uint32_t);
 
     xtc[0].xtc.extent = sizeof(Xtc)+data[7]+4;
 

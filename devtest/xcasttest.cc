@@ -53,6 +53,16 @@ static unsigned parse_interface(const char* interfaceString) {
   return interface;
 }
 
+static void usage(const char* p)
+{
+  printf("Usage: %p [options]\n",p);
+  printf("\t-i\tNetwork interface: name or address\n");
+  printf("\t-a\tDestination address, dotted notation\n");
+  printf("\t-p\tDestination port\n");
+  printf("\t-s\tBuffer size, bytes\n");
+  printf("\t-r\tReceive mode\n");
+  printf("\t-P\tPeek at data\n");
+}
 
 int main(int argc, char **argv) 
 {
@@ -60,6 +70,7 @@ int main(int argc, char **argv)
   unsigned port  = 0;
   ssize_t  sz    = 0x2000;
   bool lreceiver = false;
+  bool lpeek = false;
   std::vector<unsigned> uaddr;
 
   for(int i=0; i<argc; i++) {
@@ -78,6 +89,12 @@ int main(int argc, char **argv)
     }
     else if (strcmp(argv[i],"-r")==0)
       lreceiver = true;
+    else if (strcmp(argv[i],"-P")==0)
+      lpeek = true;
+    else if (strcmp(argv[i],"-h")==0) {
+      usage(argv[0]);
+      return 1;
+    }
   }
 
   std::vector<sockaddr_in> address(uaddr.size());
@@ -228,8 +245,16 @@ int main(int argc, char **argv)
   while(1) {
 
     ssize_t bytes;
-    if (lreceiver) 
+    if (lreceiver) {
+      if (lpeek) {
+        unsigned nbsz = 32;
+        int nb = ::recv(fd, buff, nbsz, MSG_PEEK);
+        if (nb != nbsz) {
+          printf("peek %d/%u\n",nb,nbsz);
+        }
+      }
       bytes = ::recv(fd, buff, sz, 0);
+    }
     else {
       const sockaddr_in& sa = address[iaddr];
 #ifdef USE_RAW

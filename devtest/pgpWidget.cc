@@ -33,7 +33,7 @@ Pgp::Pgp* pgp;
 Pds::Pgp::RegisterSlaveImportFrame* rsif;
 
 void printUsage(char* name) {
-	printf( "Usage: %s [-h]  -P <pgpcardNumb> [-G][-A n][-w dest,addr,data][-W dest,addr,data,count,delay][-r dest,addr][-d dest,addr,count][-t dest,addr,count][-R][-S detID,sharedMemoryTag,nclients][-a n,m,o][-o maxPrint][-s filename][-D <debug>][-m vcmask][M vcmask][-f <runTimeConfigName>][-v][-p pf]\n"
+	printf( "Usage: %s [-h]  -P <pgpcardNumb> [-G] [-w dest,addr,data][-W dest,addr,data,count,delay][-r dest,addr][-d dest,addr,count][-t dest,addr,count][-R][-S detID,sharedMemoryTag,nclients][-a n,m,o][-o maxPrint][-s filename][-D <debug>] [-f <runTimeConfigName>][-p pf]\n"
 			"    -h      Show usage\n"
 			"    -P      Set pgpcard index number                 [Default: 0]\n"
 			"                The format of the index number is a one byte number with the bottom nybble being\n"
@@ -44,7 +44,6 @@ void printUsage(char* name) {
 			"                For a G3 card, the top nybble is the index of the bottom port in use, with the\n"
 			"                index of 1 for the first port\n"
 			"    -G      Use if pgpcard is a G3 card\n"
-	    "    -A      If G3 card, add number of ports specified to this command\n"
 			"    -w      Write register to destination, reply will be send to standard output\n"
 			"                The format of the paraemeters are: 'dest addr data'\n"
 			"                where addr and Data are 32 bit unsigned integers, but the Dest is a\n"
@@ -58,8 +57,6 @@ void printUsage(char* name) {
 			"                where the bottom two bits are VC and The top two are Lane\n"
 			"    -t      Test registers, loop from addr counting up count times\n"
 			"    -d      Dump count registers starting at addr\n"
-	    "    -m      Monitor testing - allocate vc then write enable to the vc and then loop reading\n"
-	    "    -M      Disable monitor output, allocate the vc then write disable to the vc"
 			"    -R      Loop reading data until interrupted, resulting data will be written to the standard output.\n"
 			"    -S      Loop reading data until interrupted, resulting data will be written with the device type to the shared memory.  [Example: -S \"EpixSampler,0_1_DAQ\"\n"
 			"    -o      Print out up to maxPrint words when reading data\n"
@@ -71,15 +68,12 @@ void printUsage(char* name) {
 			"                The format of the file consists of lines: 'Dest Addr Data'\n"
 			"                where Addr and Data are 32 bit unsigned integers, but the Dest is a\n"
 			"                four bit field where the bottom two bits are VC and The top two are Lane\n"
-	    "    -v      printk version of pgpcard driver, check with dmesg\n"
 			"    -p      set print flag to value given\n",
 			name
 	);
 }
 
-enum Commands{none, writeCommand, readCommand, readAsyncCommand,
-  dumpCommand, testCommand, loopWriteCommand, addPortsCommand,
-  monitorTest, disMonitorTest, printkVersion, numberOfCommands};
+enum Commands{none, writeCommand,readCommand,readAsyncCommand,dumpCommand,testCommand,loopWriteCommand,addPortsCommand,numberOfCommands};
 
 int main( int argc, char** argv )
 {
@@ -109,25 +103,20 @@ int main( int argc, char** argv )
 	unsigned            scounter            = 0;
 	serrHisto = (unsigned*) calloc(100, sizeof(unsigned));
 	bool                cardGiven           = false;
-	bool                addNPorts           = false;
 	unsigned            debug               = 0;
 	unsigned            idx                 = 0;
 	unsigned            portsToAdd[3]       = {0,0,0};
-	unsigned            vcm                 = 0;
-	unsigned            one                 = 1;
-	unsigned            zero                = 0;
-	int                 reti                = SUCCESS;
+	int                 reti                 = SUCCESS;
 	::signal( SIGINT, sigHandler );
 	char                runTimeConfigname[256] = {""};
 	char                writeFileName[256] = {""};
 	PadMonServer*       shm                 = 0;
 	PadMonServer::PadType typ               = PadMonServer::NumberOf;
-  PgpCardTx           tx;
 
 	char*               endptr;
 	extern char*        optarg;
 	int c;
-	while( ( c = getopt( argc, argv, "hP:GA:w:W:D:r:d:RS:o:s:f:p:t:a:m:M:v" ) ) != EOF ) {
+	while( ( c = getopt( argc, argv, "hP:Gw:W:D:r:d:RS:o:s:f:p:t:a:" ) ) != EOF ) {
 		switch(c) {
 		case 'P':
 			pgpcard = strtoul(optarg, NULL, 0);
@@ -142,10 +131,6 @@ int main( int argc, char** argv )
 		case 'f':
 			strcpy(runTimeConfigname, optarg);
 			break;
-		case 'A':
-		  portsToAdd[0] = strtoul(optarg  ,&endptr,0);
-		  addNPorts = true;
-		  break;
 		case 'w':
 			command = writeCommand;
 			d = strtoul(optarg  ,&endptr,0);
@@ -184,17 +169,6 @@ int main( int argc, char** argv )
 		  portsToAdd[0] = strtoul(optarg  ,&endptr,0);
 		  portsToAdd[1] = strtoul(endptr+1,&endptr,0);
 		  portsToAdd[2] = strtoul(endptr+1,&endptr,0);
-		  break;
-		case 'm':
-		  command = monitorTest;
-		  vcm = strtoul(optarg, &endptr,0);
-		  break;
-    case 'M':
-      command = disMonitorTest;
-      vcm = strtoul(optarg, &endptr,0);
-      break;
-		case 'v':
-		  command = printkVersion;
 		  break;
 		case 'R':
 			command = readAsyncCommand;
@@ -282,16 +256,15 @@ int main( int argc, char** argv )
 		printUsage(argv[0]);
 		return 1;
 	}
-  bool G3Flag = strlen(g3) != 0;
-  unsigned ports = (pgpcard >> 4) & 0xf;
-  char devName[128];
-//  printf("%s pgpcard 0x%x, ports %d\n", argv[0], pgpcard, ports);
-  char err[128];
-  if ((ports == 0) && !G3Flag) {
-    ports = 15;
-  }
-  sprintf(devName, "/dev/pgpcard%s_%u_%u", g3, pgpcard & 0xf, ports);
-
+	unsigned ports = (pgpcard >> 4) & 0xf;
+	char devName[128];
+	char err[128];
+	if (ports == 0) {
+		ports = 15;
+		sprintf(devName, "/dev/pgpcard%s%u", g3, pgpcard);
+	} else {
+		sprintf(devName, "/dev/pgpcard%s_%u_%u", g3, pgpcard & 0xf, ports);
+	}
 
 	int fd = open( devName,  O_RDWR );
 	if (debug & 1) printf("%s using %s\n", argv[0], devName);
@@ -302,25 +275,17 @@ int main( int argc, char** argv )
 		return 1;
 	}
 
-  unsigned limit =  4;
-  unsigned offset = 0;
-
-  if ( !G3Flag ) {  // G2 or lower
-    while ((((ports>>offset) & 1) == 0) && (offset < limit)) {
-      offset += 1;
-    }
-  } else {  // G3 card
-    offset = ports -1;
-  }
+	unsigned limit = strlen(g3) ? 8 : 4;
+	unsigned offset = 0;
+	while ((((ports>>offset) & 1) == 0) && (offset < limit)) {
+		offset += 1;
+	}
 
 	Pds::Pgp::Pgp::portOffset(offset);
 
-	pgp = new Pds::Pgp::Pgp(fd, debug != 0);
-  if (G3Flag && addNPorts) {
-    pgp->IoctlCommand(IOCTL_Add_More_Ports, portsToAdd[0]);
-  }
-	dest = new Pds::Pgp::Destination(d);
-	if (debug & 1) printf("Destination %s Offset %u\n", dest->name(), offset);
+	pgp = new Pds::Pgp::Pgp::Pgp(fd, debug != 0);
+	dest = new Pds::Pgp::Destination::Destination(d);
+	if (debug & 1) printf("Destination %s\n", dest->name());
 
 	if (writing) {
 		//    char path[512];
@@ -380,9 +345,6 @@ int main( int argc, char** argv )
 		printf("%s - no command given, exiting\n", argv[0]);
 		return 0;
 		break;
-	case printkVersion:
-	  pgp->IoctlCommand(IOCTL_Show_Version, idx);
-	  break;
 	case writeCommand:
 		pgp->writeRegister(dest, addr, data, printFlag, Pds::Pgp::PgpRSBits::Waiting);
 		rsif = pgp->read();
@@ -440,30 +402,6 @@ int main( int argc, char** argv )
       printf("We failed to add them all!!!\n");
     }
 	  break;
-	case disMonitorTest:
-	  idx = (vcm<<8) | (pgp->portOffset());
-	  pgp->IoctlCommand(IOCTL_Set_VC_Mask, idx);
-	  tx.model = sizeof(&tx);
-	  tx.cmd   = IOCTL_Normal_Write;
-	  tx.pgpLane = pgp->portOffset();
-	  tx.pgpVc = 3;
-	  tx.size = 1;
-	  tx.data = &zero;
-	  printf("monitorTest write 0 to lane %d vc %d\n", tx.pgpLane, tx.pgpVc);
-	  write(fd, &tx, sizeof(tx));
-	  break;
-	case monitorTest:
-	  idx = (vcm<<8) | (pgp->portOffset());
-	  pgp->IoctlCommand(IOCTL_Set_VC_Mask, idx);
-	  tx.model = sizeof(&tx);
-	  tx.cmd   = IOCTL_Normal_Write;
-	  tx.pgpLane = pgp->portOffset();
-	  tx.pgpVc = 3;
-	  tx.size = 1;
-	  tx.data = &one;
-	  printf("monitorTest write 1 to lane %d vc %d, offset %d\n", tx.pgpLane, tx.pgpVc, pgp->portOffset());
-	  write(fd, &tx, sizeof(tx));
-	  //fall through to readAsync ...
 	case readAsyncCommand:
 		enum {BufferWords = 1<<24};
 		Pds::Pgp::DataImportFrame* inFrame;
@@ -492,8 +430,7 @@ int main( int argc, char** argv )
 							readRet, inFrame->lane(), inFrame->vc(), pgpCardRx.pgpLane, pgpCardRx.pgpVc);
 				} else {
 					uint32_t* u32p = (uint32_t*) pgpCardRx.data;
-					int*      i32p = (int*) pgpCardRx.data;
-					uint16_t* u16p = (uint16_t*) pgpCardRx.data;
+					uint16_t* up = (uint16_t*) pgpCardRx.data;
 					unsigned diff;
 					if (inFrame->vc()==0) { // a data frame
 						if (lastAcq) {
@@ -562,30 +499,20 @@ int main( int argc, char** argv )
 						} else {
 							slastAcq = inFrame->acqCount();
 						}
-					} else if ((inFrame->vc()==3) && (command == monitorTest)) {
-            printf("Temperature 1 [C]: %f\n", (double)((int)i32p[8])/100);
-            printf("Temperature 2 [C]: %f\n", (double)((int)i32p[9])/100);
-            printf("Humidity [%%]: %f\n", (double)(i32p[10])/100);
-            printf("ASIC analog current [mA]: %d\n", (u32p[11]));
-            printf("ASIC digital current [mA]: %d\n", (u32p[12]));
-            printf("ASIC guard ring current [uA]: %d\n", (u32p[13]));
-            printf("Analog input voltage [mV]: %d\n", (u32p[14]));
-            printf("Digital input voltage [mV]: %d\n\n", (u32p[15]));
-					} else {
-					  unsigned readBytes = readRet * sizeof(uint32_t);
-					  if (printFlag) printf("[%d] ",readBytes);
-					  for (unsigned i=0; i<(readRet == 4 ? 4 : 8); i++) {
-					    if (printFlag) printf("%0x ", u32p[i]/*pgpCardRx.data[i]*/);
-					    readBytes -= sizeof(uint32_t);
-					  }
-					  u16p = (uint16_t*) &u32p[8];
-					  unsigned i=0;
-					  while ((readBytes>0) && (maxPrint > (8+i)) && (readRet != 4)) {
-					    if (printFlag) printf("%0x ", u16p[i++]);
-					    readBytes -= sizeof(uint16_t);
-					  }
-					  if (printFlag) printf("\n");
 					}
+					unsigned readBytes = readRet * sizeof(uint32_t);
+					if (printFlag) printf("[%d] ",readBytes);
+					for (unsigned i=0; i<(readRet == 4 ? 4 : 8); i++) {
+						if (printFlag) printf("%0x ", u32p[i]/*pgpCardRx.data[i]*/);
+						readBytes -= sizeof(uint32_t);
+					}
+					up = (uint16_t*) &u32p[8];
+					unsigned i=0;
+					while ((readBytes>0) && (maxPrint > (8+i)) && (readRet != 4)) {
+						if (printFlag) printf("%0x ", up[i++]);
+						readBytes -= sizeof(uint16_t);
+					}
+					if (printFlag) printf("\n");
 				}
 			} else {
 				perror("pgpWidget Async reading error");

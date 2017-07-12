@@ -22,8 +22,6 @@
 #include "pds/config/CfgClientNfs.hh"
 #include "pds/epicsArch/EpicsArchManager.hh"
 
-#include "cadef.h"
-
 using std::string;
 
 namespace Pds 
@@ -50,13 +48,13 @@ class EvtCbEpicsArch : public EventCallback
 {
 public:
     EvtCbEpicsArch(Task* task, int iPlatform, CfgClientNfs& cfgService, const string& sFnConfig, 
-      float fMinTriggerInterval, int iDebugLevel, int iIgnoreLevel, ca_client_context* pContext) :
+      float fMinTriggerInterval, int iDebugLevel, int iIgnoreLevel) :
       _task(task), _iPlatform(iPlatform), _cfg(cfgService), _sFnConfig(sFnConfig), 
       _fMinTriggerInterval(fMinTriggerInterval), _iDebugLevel(iDebugLevel), _iIgnoreLevel(iIgnoreLevel),
-      _bAttached(false), _pContext(pContext), _epicsArchManager(NULL), _pool(sizeof(Transition),1)
+      _bAttached(false), _epicsArchManager(NULL), _pool(sizeof(Transition),1)
     {
         //// !! For debug test only
-        //_epicsArchManager = new EpicsArchManager(_cfg, _sFnConfig);
+        //_epicsArchManager = new EpicsArchManager(_cfg, _sFnConfig);        
     }
 
     virtual ~EvtCbEpicsArch()
@@ -84,7 +82,7 @@ private:
         Stream* frmk = streams.stream(StreamParams::FrameWork);
      
         reset();        
-        _epicsArchManager = new EpicsArchManager(_cfg, _sFnConfig, _fMinTriggerInterval, _iDebugLevel, _iIgnoreLevel, _pContext);
+        _epicsArchManager = new EpicsArchManager(_cfg, _sFnConfig, _fMinTriggerInterval, _iDebugLevel, _iIgnoreLevel);
         _epicsArchManager->appliance().connect(frmk->inlet());
         _bAttached = true;
 
@@ -127,7 +125,6 @@ private:
     int                 _iDebugLevel;
     int                 _iIgnoreLevel;
     bool                _bAttached;
-    ca_client_context*  _pContext;
     EpicsArchManager*   _epicsArchManager;    
     GenericPool         _pool;
 }; // class EvtCbEpicsArch
@@ -274,25 +271,18 @@ int main(int argc, char** argv)
 
     const DetInfo detInfo( getpid(), Pds::DetInfo::EpicsArch, 0, DetInfo::NoDevice, iUnit);    
 
-    //  EPICS thread initialization
-    SEVCHK ( ca_context_create(ca_enable_preemptive_callback ), "epicsArch calling ca_context_create" );
-    //  Get a pointer to the current ca_context to pass to the manager task
-    ca_client_context* pContext = ca_current_context();
-
     Task* task = new Task(Task::MakeThisATask);
 
     // keep this: it's the "hook" into the configuration database
     CfgClientNfs cfgService = CfgClientNfs(detInfo);
     SegWireSettingsEpicsArch settings(detInfo);
     
-    EvtCbEpicsArch evtCBEpicsArch(task, iPlatform, cfgService, sFnConfig, fMinTriggerInterval, iDebugLevel, iIgnoreLevel, pContext);
+    EvtCbEpicsArch evtCBEpicsArch(task, iPlatform, cfgService, sFnConfig, fMinTriggerInterval, iDebugLevel, iIgnoreLevel);
     SegmentLevel seglevel(iPlatform, settings, evtCBEpicsArch, NULL);
     
     seglevel.attach();    
     //    if ( evtCBEpicsArch.IsAttached() )    
         task->mainLoop(); // Enter the event processing loop, and never returns (unless the program terminates)
-
-    ca_context_destroy();
         
     return 0;
 }

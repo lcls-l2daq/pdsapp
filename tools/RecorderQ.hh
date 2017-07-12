@@ -7,13 +7,13 @@
 
 namespace Pds {
 
-  class Task;
+  class SpinTask;
   class MonEntryTH1F;
   class ClockTime;
 
   class RecorderQ : public Recorder {
   public:
-     RecorderQ(const char* fname, unsigned int sliceID, uint64_t chunkSize, 
+     RecorderQ(const char* fname, uint64_t chunkSize, 
                unsigned uSizeThreshold,
                bool delay_xfer=false,
                OfflineClient *offlineclient=NULL,
@@ -23,7 +23,7 @@ namespace Pds {
     InDatagram* events     (InDatagram* in);
     void        record_time(double, const ClockTime&);
   private:
-    Task*      _task;
+    SpinTask*  _task;
     Semaphore  _sem;
     MonEntryTH1F* _rec_time;
     MonEntryTH1F* _rec_time_log;

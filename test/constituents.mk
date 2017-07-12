@@ -1,30 +1,21 @@
-libnames :=
+libnames := ibtest ibtestw
 
-libsrcs_test :=
+libsrcs_ibtest  := ibcommon.cc
 
+libsrcs_ibtestw := ibcommonw.cc
+libslib_ibtestw := ibverbs
 
 tgtnames := timestampReceiver sqlDbTest timerResolution
 ifneq ($(findstring i386-linux,$(tgt_arch)),)
-tgtnames += princetonCameraTest andorStandAlone andorDualStandAlone archonStandAlone
+tgtnames += princetonCameraTest
 endif
 
-ifneq ($(findstring x86_64-linux,$(tgt_arch)),)
-tgtnames += andorStandAlone andorDualStandAlone archonStandAlone jungfrauStandAlone 
+ifeq ($(findstring rhel7,$(tgt_arch)),)
+tgtnames += andorStandAlone
+tgtnames += andorDualStandAlone
 endif
 
-commonlibs	:= pdsdata/xtcdata pdsdata/appdata pdsdata/psddl_pdsdata
-commonlibs	+= pds/service pds/collection pds/xtc pds/mon pds/vmon pds/utility pds/management pds/client
-commonlibs	+= pds/config pds/configdbc pds/confignfs pds/configsql
-commonlibs	+= offlinedb/mysqlclient
-
-tgtsrcs_archonStandAlone := archonStandAlone.cc
-tgtlibs_archonStandAlone := $(commonlibs) pds/archon
-tgtslib_archonStandAlone := dl pthread rt
-
-tgtsrcs_jungfrauStandAlone := jungfrauStandAlone.cc
-tgtincs_jungfrauStandAlone := pdsdata/include ndarray/include boost/include
-tgtlibs_jungfrauStandAlone := $(commonlibs) pds/jungfrau slsdet/SlsDetector
-tgtslib_jungfrauStandAlone := dl pthread rt
+commonlibs := pdsdata/xtcdata pds/service pds/collection pds/xtc pds/mon pds/vmon pds/utility pds/management pds/client
 
 tgtsrcs_princetonCameraTest := princetonCameraTest.cc
 tgtlibs_princetonCameraTest := pds/princetonutil pvcam/pvcam
@@ -52,3 +43,83 @@ tgtslib_sqlDbTest := rt
 tgtsrcs_timerResolution := timerResolution.cc
 tgtlibs_timerResolution :=
 tgtslib_timerResolution := dl pthread rt
+
+tgtnames := ibhosts
+tgtsrcs_ibhosts := ibhosts.cc
+tgtslib_ibhosts := ibverbs rt
+
+tgtsrcs_ibrdma := ibrdma.cc
+tgtslib_ibrdma := ibverbs
+
+#
+#  ibv_reg_mr behaves differently if it is linked from a shared library!
+#
+tgtsrcs_ibrdmac := ibrdmac.cc ibcommon.cc
+#tgtlibs_ibrdmac := pdsapp/ibtest
+tgtslib_ibrdmac := ibverbs pthread
+
+tgtnames := iboutlet ibinlet ibrdma ibrdmac
+tgtsrcs_iboutlet := iboutlet.cc ibcommon.cc
+tgtincs_iboutlet := pdsdata/include ndarray/include boost/include
+tgtlibs_iboutlet := pdsdata/xtcdata pds/service pds/collection pds/xtc pds/mon pds/vmon pds/utility
+#tgtlibs_iboutlet += pdsapp/ibtest
+tgtslib_iboutlet := ibverbs rt pthread
+
+tgtsrcs_ibinlet := ibinlet.cc ibcommon.cc
+tgtincs_ibinlet := pdsdata/include ndarray/include boost/include
+tgtlibs_ibinlet := pdsdata/xtcdata pds/service pds/collection pds/xtc pds/mon pds/vmon pds/utility
+#tgtlibs_ibinlet += pdsapp/ibtest
+tgtslib_ibinlet := ibverbs rt pthread
+
+tgtnames := ibrdmac ibrdma ibinlet iboutlet
+
+tgtsrcs_iboutletw := iboutletw.cc
+tgtincs_iboutletw := pdsdata/include ndarray/include boost/include
+tgtlibs_iboutletw := pdsdata/xtcdata pds/service pds/collection pds/xtc pds/mon pds/vmon pds/utility
+tgtlibs_iboutletw += pdsapp/ibtestw
+tgtslib_iboutletw := ibverbs rt pthread
+
+tgtsrcs_ibinletw := ibinletw.cc
+tgtincs_ibinletw := pdsdata/include ndarray/include boost/include
+tgtlibs_ibinletw := pdsdata/xtcdata pds/service pds/collection pds/xtc pds/mon pds/vmon pds/utility
+tgtlibs_ibinletw += pdsapp/ibtestw
+tgtslib_ibinletw := ibverbs rt pthread
+
+tgtnames := ibinletw iboutletw
+
+tgtsrcs_ebinlet := ebinlet.cc
+tgtincs_ebinlet := pdsdata/include ndarray/include boost/include
+tgtlibs_ebinlet := pdsdata/xtcdata pds/service pds/collection pds/xtc pds/mon pds/vmon pds/utility
+tgtlibs_ebinlet += pdsapp/ibtestw
+tgtslib_ebinlet := ibverbs rt pthread
+
+tgtsrcs_segoutlet := segoutlet.cc
+tgtincs_segoutlet := pdsdata/include ndarray/include boost/include
+tgtlibs_segoutlet := pdsdata/xtcdata pds/service pds/collection pds/xtc pds/mon pds/vmon pds/utility
+tgtlibs_segoutlet += pdsapp/ibtestw
+tgtslib_segoutlet := ibverbs rt pthread
+
+tgtsrcs_acextra := acextra.cc
+tgtslib_acextra := m
+
+tgtsrcs_mqgetattr := mqgetattr.cc
+tgtslib_mqgetattr := rt
+
+tgtnames := mqgetattr
+
+tgtsrcs_tprcdr := tprcdr.cc
+tgtslib_tprcdr := rt pthread
+
+libnames :=
+tgtnames := tprcdr
+
+tgtsrcs_tpgmps := tpgmps.cc 
+tgtlibs_tpgmps := pds/cphw cpsw/cpsw yaml/yaml-cpp
+tgtslib_tpgmps := dl rt
+
+tgtnames := tpgmps
+
+tgtsrcs_jungfrausim := jungfrausim.cc
+tgtslib_jungfrausim := dl rt
+
+tgtnames := jungfrausim

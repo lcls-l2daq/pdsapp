@@ -1,4 +1,4 @@
-// $Id$
+// $Id: RayonixConfig_V1.cc 4407 2014-04-22 00:38:58Z caf $
 
 #include "pdsapp/config/RayonixConfig_V1.hh"
 

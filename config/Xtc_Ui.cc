@@ -164,14 +164,12 @@ static void _copy_to_buffer(const Dgram* dg,
 
 using namespace Pds_ConfigDb;
 
-Xtc_Ui::Xtc_Ui(QWidget* parent,
-               bool     expert) :
+Xtc_Ui::Xtc_Ui(QWidget* parent) :
   QWidget      (parent),
   _cfgdg_buffer(0),
   _l1adg_buffer(0),
   _fiter       (0),
-  _icycle      (-1),
-  _expert      (expert)
+  _icycle      (-1)
 {
   QVBoxLayout* l = new QVBoxLayout;
   l->addWidget(_runInfo = new QLabel);
@@ -245,8 +243,6 @@ void Xtc_Ui::set_file(QString fname)
       break;
     }
   }
-
-  prev_cycle();
 
   const Pds::ClockTime& time = reinterpret_cast<const Pds::Dgram*>(_cfgdg_buffer)->seq.clock();
   QDateTime datime; datime.setTime_t(time.seconds());
@@ -341,10 +337,5 @@ void Xtc_Ui::change_component()
 
 Serializer& Xtc_Ui::lookup(const Pds::TypeId& stype)
 {
-  Serializer* p = _dict .lookup(stype);
-  Serializer* e = _edict.lookup(stype);
-  if (_expert)
-    return e ? *e : *p;
-  else
-    return p ? *p : *e;
+  return *_dict .lookup(stype);
 }

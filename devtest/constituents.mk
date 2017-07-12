@@ -41,15 +41,13 @@ tgtslib_evrobs := $(USRLIB)/rt
 
 tgtsrcs_evg := evg.cc
 tgtincs_evg := evg
-tgtlibs_evg := pdsdata/xtcdata pdsdata/psddl_pdsdata evgr/evg evgr/evr pds/service pds/collection pds/config pds/xtc pds/mon pds/vmon pds/utility pds/management pds/client pds/evgr pds/configdata pds/configdbc pds/confignfs pds/configsql offlinedb/mysqlclient
-#tgtslib_evg := $(USRLIBDIR)/rt $(USRLIBDIR)/mysql/mysqlclient
-tgtslib_evg := $(USRLIBDIR)/rt
+tgtlibs_evg := pdsdata/xtcdata pdsdata/psddl_pdsdata evgr/evg evgr/evr pds/service pds/collection pds/config pds/xtc pds/mon pds/vmon pds/utility pds/management pds/client pds/evgr pds/configdata pds/configdbc pds/confignfs pds/configsql
+tgtslib_evg := $(USRLIBDIR)/rt $(USRLIBDIR)/mysql/mysqlclient
 
 tgtsrcs_evgr := evgr.cc
 tgtincs_evgr := evgr
-tgtlibs_evgr := pdsdata/xtcdata pdsdata/psddl_pdsdata evgr/evg evgr/evr pds/service pds/collection pds/config pds/xtc pds/mon pds/vmon pds/utility pds/management pds/client pds/evgr pds/configdata pds/configdbc pds/confignfs pds/configsql offlinedb/mysqlclient
-#tgtslib_evgr := $(USRLIBDIR)/rt $(USRLIBDIR)/mysql/mysqlclient
-tgtslib_evgr := $(USRLIBDIR)/rt 
+tgtlibs_evgr := pdsdata/xtcdata pdsdata/psddl_pdsdata evgr/evg evgr/evr pds/service pds/collection pds/config pds/xtc pds/mon pds/vmon pds/utility pds/management pds/client pds/evgr pds/configdata pds/configdbc pds/confignfs pds/configsql
+tgtslib_evgr := $(USRLIBDIR)/rt $(USRLIBDIR)/mysql/mysqlclient
 
 tgtsrcs_evgrd := evgrd.cc
 tgtincs_evgrd := evgr
@@ -160,12 +158,153 @@ tgtlibs_netlink := pds/collection pds/service pdsdata/xtcdata
 tgtslib_netlink := ${USRLIBDIR}/rt
 tgtincs_netlink := 
 
+libnames :=
+#tgtnames := tasktest xcasttest quadadc quadadc_dma amctiming
+#tgtnames := tasktest xcasttest quadadc quadadc_dma quadadc_mon quadadc_cal amctiming amcmonitor tprca
+tgtnames := tasktest xcasttest amctiming amcmonitor tprca
+
+tgtsrcs_tasktest := tasktest.cc
+tgtlibs_tasktest := pds/service pdsdata/xtcdata
+tgtslib_tasktest := $(USRLIBDIR)/rt
+
+tgtsrcs_quadadc := quadadc.cc
+tgtlibs_quadadc := pds/quadadc pds/tpr
+tgtincs_quadadc := evgr
+tgtslib_quadadc := $(USRLIBDIR)/rt
+tgtlibs_quadadc += pds/epicstools epics/ca epics/Com
+tgtincs_quadadc += epics/include epics/include/os/Linux
+
+tgtsrcs_quadadc_dma := quadadc_dma.cc
+tgtlibs_quadadc_dma := pds/quadadc pds/tprdsbase pds/tpr pds/service pdsdata/xtcdata
+tgtincs_quadadc_dma := evgr
+tgtslib_quadadc_dma := $(USRLIBDIR)/rt pthread
+tgtlibs_quadadc_dma += pds/epicstools epics/ca epics/Com
+tgtincs_quadadc_dma += epics/include epics/include/os/Linux
+
+tgtsrcs_quadadc_cal := quadadc_cal.cc
+tgtlibs_quadadc_cal := pds/quadadc pds/tprdsbase pds/tpr pds/service pdsdata/xtcdata
+tgtincs_quadadc_cal := evgr
+tgtslib_quadadc_cal := $(USRLIBDIR)/rt pthread
+tgtlibs_quadadc_cal := pds/quadadc pds/tprdsbase pds/tpr pds/service 
+tgtlibs_quadadc_cal += pdsdata/xtcdata pdsdata/psddl_pdsdata pdsapp/padmon pdsdata/appdata
+tgtlibs_quadadc_cal += pds/epicstools epics/ca epics/Com
+tgtincs_quadadc_cal := pdsdata/include ndarray/include boost/include evgr
+tgtincs_quadadc_cal += epics/include epics/include/os/Linux
+
 tgtsrcs_quadadc_mon := quadadc_mon.cc
 tgtlibs_quadadc_mon := pds/service 
+#tgtlibs_quadadc_mon += pds/quadadc pds/tprdsbaseb pds/tpr
 tgtlibs_quadadc_mon += hsd/hsd
 tgtlibs_quadadc_mon += pdsdata/xtcdata pdsdata/psddl_pdsdata pdsapp/padmon pdsdata/appdata
 tgtincs_quadadc_mon := pdsdata/include ndarray/include boost/include evgr
 tgtslib_quadadc_mon := $(USRLIBDIR)/rt pthread
-tgtincs_quadadc_mon += hsd/include
+tgtlibs_quadadc_mon += pds/epicstools epics/ca epics/Com
+tgtincs_quadadc_mon += epics/include epics/include/os/Linux hsd/include
 
-tgtnames += quadadc_mon
+tgtsrcs_quadadc_reset := quadadc_reset.cc
+tgtlibs_quadadc_reset := pds/quadadc pds/tpr
+tgtincs_quadadc_reset := evgr
+tgtslib_quadadc_reset := $(USRLIBDIR)/rt
+tgtlibs_quadadc_reset += pds/epicstools epics/ca epics/Com
+tgtincs_quadadc_reset += epics/include epics/include/os/Linux
+
+tgtsrcs_amctiming := amctiming.cc
+tgtlibs_amctiming := pds/cphw cpsw/cpsw yaml/yaml-cpp
+tgtslib_amctiming := dl pthread rt
+
+tgtsrcs_amcmonitor := amcmonitor.cc
+tgtlibs_amcmonitor := pds/cphw cpsw/cpsw yaml/yaml-cpp
+tgtslib_amcmonitor := dl pthread rt
+
+#tgtnames += tprsh tprca tprbsaca tprutil
+
+tgtsrcs_tprutil := tprutil.cc
+tgtlibs_tprutil := pds/tpr pds/service pdsdata/xtcdata
+tgtslib_tprutil := ${USRLIBDIR}/rt pthread
+tgtincs_tprutil := evgr
+
+tgtsrcs_tprsh := tprsh.cc
+tgtlibs_tprsh := pds/collection pds/service pdsdata/xtcdata evgr/evr
+tgtslib_tprsh := ${USRLIBDIR}/rt pthread
+tgtincs_tprsh := evgr
+
+tgtsrcs_tprca := tprca.cc
+tgtlibs_tprca := pds/collection pds/service pdsdata/xtcdata evgr/evr
+tgtlibs_tprca += pds/epicstools epics/ca epics/Com
+tgtslib_tprca := ${USRLIBDIR}/rt
+tgtincs_tprca := evgr
+tgtincs_tprca += epics/include epics/include/os/Linux
+
+tgtsrcs_tprbsaca := tprbsaca.cc
+tgtlibs_tprbsaca := pds/collection pds/service pdsdata/xtcdata evgr/evr
+tgtlibs_tprbsaca += pds/epicstools epics/ca epics/Com
+tgtslib_tprbsaca := ${USRLIBDIR}/rt
+tgtincs_tprbsaca := evgr
+tgtincs_tprbsaca += epics/include epics/include/os/Linux
+
+#AMCBSADIR := /reg/neh/home/weaver/amc-bsa
+AMCBSADIR := /afs/slac/u/ec/weaver/vol1/BSA/master
+
+tgtsrcs_tpgbsaca := tpgbsaca.cc
+tgtlibs_tpgbsaca := pds/collection pds/service pdsdata/xtcdata evgr/evr
+tgtlibs_tpgbsaca += pds/epicstools epics/ca epics/Com
+tgtlibs_tpgbsaca += pds/cphw cpsw/cpsw yaml/yaml-cpp
+tgtslib_tpgbsaca := ${USRLIBDIR}/rt ${AMCBSADIR}/lib/linux-x86_64/bsa
+tgtincs_tpgbsaca := evgr
+tgtincs_tpgbsaca += epics/include epics/include/os/Linux
+tgtsinc_tpgbsaca := ${AMCBSADIR}/include
+
+tgtsrcs_acebsaca := acebsaca.cc
+tgtlibs_acebsaca := pds/collection pds/service pdsdata/xtcdata evgr/evr
+tgtlibs_acebsaca += pds/epicstools epics/ca epics/Com
+tgtlibs_acebsaca += pds/cphw cpsw/cpsw yaml/yaml-cpp
+tgtslib_acebsaca := ${USRLIBDIR}/rt ${AMCBSADIR}/lib/linux-x86_64/bsa
+tgtincs_acebsaca := evgr
+tgtincs_acebsaca += epics/include epics/include/os/Linux
+tgtsinc_acebsaca := ${AMCBSADIR}/include
+
+tgtsrcs_bsaapp := bsaapp.cc
+tgtlibs_bsaapp := pds/collection pds/service pdsdata/xtcdata evgr/evr
+tgtlibs_bsaapp += pds/cphw cpsw/cpsw yaml/yaml-cpp
+tgtslib_bsaapp := ${USRLIBDIR}/rt ${AMCBSADIR}/lib/linux-x86_64/bsa
+tgtincs_bsaapp := evgr
+tgtsinc_bsaapp := ${AMCBSADIR}/include
+
+tgtsrcs_dtimon := dtimon.cc
+tgtincs_dtimon := cpsw/include cpsw_boost/include yaml/include
+tgtincs_dtimon += epics/include epics/include/os/Linux
+tgtlibs_dtimon := pds/cphw cpsw/cpsw yaml/yaml-cpp
+tgtlibs_dtimon += pds/epicstools epics/ca epics/Com
+tgtslib_dtimon := rt pthread
+
+#tgtnames := dtimon
+
+tgtsrcs_dtiprbs := dtiprbs.cc
+tgtincs_dtiprbs := cpsw/include cpsw_boost/include yaml/include
+tgtincs_dtiprbs += epics/include epics/include/os/Linux
+tgtincs_dtiprbs += cpsw/include
+tgtlibs_dtiprbs := pds/cphw cpsw/cpsw yaml/yaml-cpp
+tgtlibs_dtiprbs += pds/epicstools epics/ca epics/Com
+tgtslib_dtiprbs := rt pthread
+
+#tgtnames := dtiprbs
+
+tgtsrcs_dtisim := dtisim.cc
+tgtincs_dtisim := cpsw/include cpsw_boost/include yaml/include
+tgtincs_dtisim += epics/include epics/include/os/Linux
+tgtincs_dtisim += cpsw/include
+tgtlibs_dtisim := pds/cphw cpsw/cpsw yaml/yaml-cpp
+tgtlibs_dtisim += pds/epicstools epics/ca epics/Com
+tgtslib_dtisim := rt pthread
+
+#tgtnames := dtisim
+
+tgtsrcs_timdly := timdly.cc
+tgtincs_timdly := cpsw/include cpsw_boost/include yaml/include
+tgtincs_timdly += epics/include epics/include/os/Linux
+tgtincs_timdly += cpsw/include
+tgtlibs_timdly := pds/cphw cpsw/cpsw yaml/yaml-cpp
+tgtlibs_timdly += pds/epicstools epics/ca epics/Com
+tgtslib_timdly := rt pthread
+
+#tgtnames := timdly

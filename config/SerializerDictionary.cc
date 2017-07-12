@@ -69,10 +69,8 @@
 #include "pdsapp/config/TimeToolConfig.hh"
 #include "pdsapp/config/TimeToolConfig_V1.hh"
 #include "pdsapp/config/Andor3dConfig.hh"
-#include "pdsapp/config/ArchonConfig.hh"
-#include "pdsapp/config/JungfrauConfig.hh"
-#include "pdsapp/config/JungfrauConfig_V1.hh"
-#include "pdsapp/config/QuadAdcConfig.hh"
+#include "pdsapp/config/TriggerConfigP.hh"
+#include "pdsapp/config/TprDSConfig.hh"
 
 #include "pds/config/AliasConfigType.hh"
 #include "pds/config/EvsConfigType.hh"
@@ -110,10 +108,9 @@
 #include "pds/config/PimaxConfigType.hh"
 #include "pds/config/TimeToolConfigType.hh"
 #include "pds/config/Andor3dConfigType.hh"
-#include "pds/config/ArchonConfigType.hh"
-#include "pds/config/JungfrauConfigType.hh"
+#include "pds/config/TriggerConfigType.hh"
+#include "pds/config/TprDSConfigType.hh"
 #include "pds/config/PdsDefs.hh"
-#include "pds/config/QuadAdcConfigType.hh"
 
 #include "pdsdata/psddl/lusi.ddl.h"
 
@@ -182,9 +179,8 @@ Serializer* SerializerDictionary::lookup(const Pds::TypeId& type)
   enroll(_pimaxConfigType       ,new PimaxConfig);
   enroll(_timetoolConfigType    ,new TimeToolConfig);
   enroll(_andor3dConfigType     ,new Andor3dConfig);
-  enroll(_archonConfigType      ,new ArchonConfig);
-  enroll(_jungfrauConfigType    ,new JungfrauConfig);
-  enroll(_QuadAdcConfigType     ,new QuadAdcConfig);
+  enroll(_trgConfigType         ,new TriggerConfigP);
+  enroll(_tprdsConfigType       ,new TprDSConfig);
   //  retired
   enroll(Pds::TypeId(Pds::TypeId::Id_Cspad2x2Config,1),new Cspad2x2Config_V1);
   enroll(Pds::TypeId(Pds::TypeId::Id_CspadConfig,4) , new CspadConfig_V4);
@@ -210,7 +206,6 @@ Serializer* SerializerDictionary::lookup(const Pds::TypeId& type)
   enroll(Pds::TypeId(Pds::TypeId::Id_QuartzConfig,1),new V1::QuartzConfig);
   enroll(Pds::TypeId(Pds::TypeId::Id_Epix100aConfig,1),new V1::Epix100aConfig);
   enroll(Pds::TypeId(Pds::TypeId::Id_AndorConfig,1),  new AndorConfig_V1);
-  enroll(Pds::TypeId(Pds::TypeId::Id_JungfrauConfig,1), new JungfrauConfig_V1);
   //  enroll(Pds::TypeId(Pds::TypeId::Id_RayonixConfig,1), new RayonixConfig_V1);
 
   if (Parameter::readFromData())

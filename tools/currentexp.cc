@@ -1,4 +1,4 @@
-// $Id$
+// $Id: currentexp.cc 3215 2013-04-11 16:06:03Z weaver $
 #include <stdlib.h>
 #include <stdio.h>
 #include <sys/types.h>

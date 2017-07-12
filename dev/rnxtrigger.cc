@@ -1,4 +1,4 @@
-/* $Id$ */
+/* $Id: rnxtrigger.cc 4182 2014-02-11 01:29:59Z weaver $ */
 #include <stdio.h>
 #include <stdint.h>
 #include <string.h>

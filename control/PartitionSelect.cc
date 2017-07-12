@@ -110,7 +110,9 @@ void PartitionSelect::select_dialog()
 
   bool bReadGroupEnable = _checkReadGroupEnable();
 
-  SelectDialog* dialog = new SelectDialog(this, _pcontrol, _icontrol, bReadGroupEnable, _autorun);
+  SelectDialog* dialog = new SelectDialog(this,
+                                          _pcontrol, _icontrol, 
+                                          bReadGroupEnable, _autorun);
   bool ok = dialog->exec();
   if (ok) {
     QList<Node> nodes = dialog->selected();
@@ -246,9 +248,6 @@ void PartitionSelect::select_dialog()
       
       _aliases = dialog->aliases();
 
-      Pds_ConfigDb::GlobalCfg::instance().cache(_evrIOConfigType, 
-						reinterpret_cast<char*>(dialog->evrio  ().config(dialog->aliases())), 
-						true);
       Pds_ConfigDb::GlobalCfg::instance().cache(_aliasConfigType, 
 						reinterpret_cast<char*>(dialog->aliases().config()),
 						true);
@@ -287,14 +286,9 @@ const QList<BldInfo >& PartitionSelect::reporters() const { return _reporters ; 
 
 bool PartitionSelect::_validate(const BldBitMask& bld_mask)
 {
-  bool lEvent  =false;
   bool lError  =false;
   bool lWarning=false;
   QString errorMsg;
-
-  for(unsigned i=0; i<_nnodes; i++) {
-    lEvent   |= (_nodes[i].level()==Level::Event);
-  }
 
   bool lEvr    =false;
   bool lBld    =false;
@@ -318,15 +312,10 @@ bool PartitionSelect::_validate(const BldBitMask& bld_mask)
     }
   }
 
-  if (!lEvent) {
-    lError = true;
-    errorMsg += "No Processing Node selected.\n";
-  }
-
-  if (!lEvr) {
-    lError = true;
-    errorMsg += "No EVR selected.\n";
-  }
+  // if (!lEvr) {
+  //   lError = true;
+  //   errorMsg += "No EVR selected.\n";
+  // }
 
   QString warnMsg;
   if (!lBld && bld_mask.isNotZero()) {
@@ -410,10 +399,6 @@ void PartitionSelect::autorun()
 void PartitionSelect::latch_aliases()
 {
   if (_alias_poll) {
-    Pds_ConfigDb::GlobalCfg::instance().cache(_evrIOConfigType, 
-					      reinterpret_cast<char*>(_alias_poll->evrio  ().config(_alias_poll->aliases())), 
-					      true);
-    
     Pds_ConfigDb::GlobalCfg::instance().cache(_aliasConfigType, 
                                               reinterpret_cast<char*>(_alias_poll->aliases().config()),
                                               true);

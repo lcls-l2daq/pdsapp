@@ -25,33 +25,11 @@ namespace Pds
 {
    class MySegWire;
    class Seg;
-   class DoNoSegWire;
-   class DoNoSeg;
 }
 
 //
 //  This class creates the server when the streams are connected.
 //
-
-class Pds::DoNoSegWire : public SegWireSettings {
-  public:
-    DoNoSegWire() : _epix100aServer(0), _sources(0), _aliases(0) {};
-    void connect( InletWire& wire,
-                  StreamParams::StreamType s,
-                  int interface ) {};
-
-    const std::list<Src>& sources() const { return _sources; }
-
-    const std::list<SrcAlias>* pAliases() const
-    { return (_aliases.size() > 0) ? &_aliases : NULL; }
-
-    bool     is_triggered() const { return true; }
-
-    Epix100aServer* _epix100aServer;
-    std::list<Src> _sources;
-    std::list<SrcAlias> _aliases;
-};
-
 class Pds::MySegWire
    : public SegWireSettings
 {
@@ -75,12 +53,6 @@ class Pds::MySegWire
    unsigned max_event_size () const { return 4*1024*1024; }
    unsigned max_event_depth() const { return _max_event_depth; }
    void max_event_depth(unsigned d) { _max_event_depth = d; }
-   bool has_fiducial() const {
-     printf("has_fiducial %s\n", _fiberTriggering ? "true" : "false");
-     return _fiberTriggering;
-   }
-   void fiberTriggering(bool b) { _fiberTriggering = b; }
-
  private:
    Epix100aServer* _epix100aServer;
    std::list<Src> _sources;
@@ -88,25 +60,12 @@ class Pds::MySegWire
    unsigned _module;
    unsigned _channel;
    unsigned _max_event_depth;
-   bool     _fiberTriggering;
 };
 
 //
 //  Implements the callbacks for attaching/dissolving.
 //  Appliances can be added to the stream here.
 //
-
-class Pds::DoNoSeg : public EventCallback {
-  public:
-    DoNoSeg() {};
-    bool didYouFail() {return false; }
-  private:
-    // Implements EventCallback
-    void attached( SetOfStreams& streams ) {};
-    void failed( Reason reason ) {};
-    void dissolved( const Node& who ) {};
-};
-
 class Pds::Seg
    : public EventCallback
 {
@@ -168,11 +127,10 @@ void sigHandler( int signal ) {
   Pds::Epix100aServer* server = Pds::Epix100aServer::instance();
   psignal( signal, "Signal received by Epix100aApplication\n");
   if (server != 0) {
-    if (server->configurator()) {
-      server->configurator()->waitForFiducialMode(false);
+	if (server->configurator()) {
       server->configurator()->evrLaneEnable(false);
       server->configurator()->enableExternalTrigger(false);
-    }
+	}
     server->disable();
   } else {
     printf("sigHandler found nil server 1!\n");
@@ -258,7 +216,7 @@ void Pds::Seg::dissolved( const Node& who )
 using namespace Pds;
 
 void printUsage(char* s) {
-  printf( "Usage: epix100a [-h] [-d <detector>] [-i <deviceID>] [-e <numb>] [-R <bool>] [-m <bool>] [-r <runTimeConfigName>] [-D <debug>] [-P <pgpcardNumb>] [-G] [-T]\n"
+  printf( "Usage: epix100a [-h] [-d <detector>] [-i <deviceID>] [-e <numb>] [-R <bool>] [-m <bool>] [-r <runTimeConfigName>] [-D <debug>] [-P <pgpcardNumb>] [-G] -p <platform>\n"
       "    -h      Show usage\n"
       "    -d      Set detector type by name [Default: XcsEndstation]\n"
       "    -i      Set device id             [Default: 0]\n"
@@ -271,7 +229,6 @@ void printUsage(char* s) {
       "                For a G3 card, the top nybble is the index of the bottom port in use, with the\n"
       "                index of 1 for the first port\n"
       "    -G      Use if pgpcard is a G3 card\n"
-      "    -T      Use if pgpcard is a G3 card and you want the triggering to be done over the fiber\n"
       "    -e <N>  Set the maximum event depth, default is 128\n"
       "    -R <B>  Set flag to reset on every config or just the first if false\n"
       "    -m <B>  Set flag to maintain or not maintain lost run triggers (turn off for slow running\n"
@@ -305,7 +262,6 @@ int main( int argc, char** argv )
   unsigned            eventDepth          = 128;
   unsigned            resetOnEveryConfig   = 0;
   bool                maintainRunTrig     = false;
-  bool                triggerOverFiber    = false;
   char                runTimeConfigname[256] = {""};
   char                g3[16]              = {""};
   ::signal( SIGINT,  sigHandler );
@@ -318,7 +274,7 @@ int main( int argc, char** argv )
    extern char* optarg;
    char* uniqueid = (char *)NULL;
    int c;
-   while( ( c = getopt( argc, argv, "hd:i:p:m:e:R:r:D:P:GTu:" ) ) != EOF ) {
+   while( ( c = getopt( argc, argv, "hd:i:p:m:e:R:r:D:P:Gu:" ) ) != EOF ) {
 	 printf("processing %c\n", c);
      bool     found;
      unsigned index;
@@ -373,9 +329,6 @@ int main( int argc, char** argv )
          case 'D':
            debug = strtoul(optarg, NULL, 0);
            break;
-         case 'T':
-           triggerOverFiber = true;
-           break;
          case 'h':
            printUsage(argv[0]);
            return 0;
@@ -412,22 +365,8 @@ int main( int argc, char** argv )
                     deviceId );
    printf("making cfgService\n");
    cfgService = new CfgClientNfs(detInfo);
-
-   bool G3Flag = strlen(g3) != 0;
-
-   if (triggerOverFiber && !G3Flag) {
-     printf("N.B. fiber triggering option will not work if not a G3 pgpcard !!!\n");
-   }
-
-
-   printf("making Epix100aServer");
-   if (G3Flag && triggerOverFiber) {
-     printf("Sequence\n");
-     epix100aServer = new Epix100aServerSequence(detInfo, 0);
-   } else {
-     printf("Count\n");
-     epix100aServer = new Epix100aServerCount(detInfo, 0);
-   }
+   printf("making Epix100aServer\n");
+   epix100aServer = new Epix100aServer(detInfo, 0);
    printf("Epix100a will reset on %s configuration\n", resetOnEveryConfig ? "every" : "only the first");
    epix100aServer->resetOnEveryConfig(resetOnEveryConfig);
    epix100aServer->runTimeConfigName(runTimeConfigname);
@@ -435,12 +374,11 @@ int main( int argc, char** argv )
    printf("setting Epix100aServer debug level\n");
    epix100aServer->debug(debug);
 
-   printf("MySegWire settings\n");
-//   DoNoSegWire settings();
+   printf("MySetWire settings\n");
    MySegWire settings(epix100aServer, module, channel, uniqueid);
    settings.max_event_depth(eventDepth);
-   settings.fiberTriggering(G3Flag && triggerOverFiber);
 
+   bool G3Flag = strlen(g3) != 0;
    unsigned ports = (pgpcard >> 4) & 0xf;
    char devName[128];
    printf("%s pgpcard 0x%x, ports %d\n", argv[0], pgpcard, ports);
@@ -473,10 +411,8 @@ int main( int argc, char** argv )
 
    Pds::Pgp::Pgp::portOffset(offset);
    epix100aServer->setEpix100a(fd);
-   epix100aServer->fiberTriggering(G3Flag && triggerOverFiber);
 
    printf("making Seg\n");
-//   DoNoSeg* seg = new DoNoSeg();
    Seg* seg = new Seg( task,
                        platform,
                        cfgService,

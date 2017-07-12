@@ -28,7 +28,7 @@ ProcNodeGroup::ProcNodeGroup(const QString& label,
 {
   QGridLayout* l = new QGridLayout;
   l->addWidget(_l3f_box    = new QCheckBox("L3F"), 0, 0, 2, 1);
-  l->addWidget(_l3f_data   = new QPushButton("<data_file>"), 0, 1, Qt::AlignRight);
+  l->addWidget(_l3f_data   = new QPushButton("[data_file]"), 0, 1, Qt::AlignRight);
   l->addWidget(_l3f_action = new QComboBox, 0, 2, Qt::AlignLeft);
   l->addWidget(_l3f_unbiasl= new QLabel("Unbiased Fraction"), 1, 1, Qt::AlignRight);
   l->addWidget(_l3f_unbias = new QLineEdit("0"), 1, 2, Qt::AlignLeft);
@@ -106,17 +106,16 @@ float ProcNodeGroup::unbiased_fraction() const
 
 void ProcNodeGroup::select_file()
 {
-  QFileDialog* _input_data = new QFileDialog(_l3f_data);
-  _input_data->setFileMode(QFileDialog::ExistingFile);
-  _input_data->selectFile(QString("%1/.").arg(getenv("HOME")));
+  QFileDialog* input_data = new QFileDialog(_l3f_data);
+  input_data->setFileMode(QFileDialog::ExistingFile);
+  input_data->selectFile(QString("%1/.").arg(getenv("HOME")));
 
-  if (_input_data->exec()) {
-    QStringList ofiles = _input_data->selectedFiles();
+  if (input_data->exec()) {
+    QStringList ofiles = input_data->selectedFiles();
     if (ofiles.length()>0)
       _l3f_data->setText(ofiles[0]);
   }
-
-  delete _input_data;
+  delete input_data;
 }
 
 void ProcNodeGroup::action_change(int)

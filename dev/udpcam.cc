@@ -1,4 +1,4 @@
-// $Id$
+// $Id: udpcam.cc 5393 2015-06-10 00:41:34Z caf@SLAC.STANFORD.EDU $
 
 #include "pds/service/CmdLineTools.hh"
 #include "pdsdata/xtc/DetInfo.hh"
