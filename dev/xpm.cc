@@ -1,4 +1,3 @@
-
 #include <stdio.h>
 #include <unistd.h>
 #include <stdint.h>
@@ -11,7 +10,7 @@
 #include <signal.h>
 #include <new>
 
-#include "pds/xpm2/Module.hh"
+#include "pds/xpm/Module.hh"
 //#include "pds/xpm/ClockControl.hh"
 //#include "pds/xpm/JitterCleaner.hh"
 #include "pds/cphw/RingBuffer.hh"
@@ -28,7 +27,7 @@ static inline double dtime(timespec& tsn, timespec& tso)
 
 extern int optind;
 
-using namespace Pds::Xpm2;
+using namespace Pds::Xpm;
 
 void usage(const char* p) {
   printf("Usage: %s [options]\n",p);
@@ -64,7 +63,6 @@ int main(int argc, char** argv) {
   int fixedRate=-1;
   int skewSteps=0;
   bool lreset=false;
-  bool lenable=true;
   bool lPll=false;
   bool lPllbypass=false;
   int  ringChan=-1;
@@ -128,14 +126,14 @@ int main(int argc, char** argv) {
   //  JitterCleaner* jc = new((void*)0x05000000) JitterCleaner;
 
   if (linkLoopback != 0x80000000)
-    for(unsigned i=0; i<14; i++) 
+    for(unsigned i=0; i<14; i++)
       m->linkLoopback(i, linkLoopback&(1<<i) );
 
   if (ringChan>=0) {
     m->setRingBChan(ringChan);
 
     Pds::Cphw::RingBuffer* b = new((void*)0x80010000) Pds::Cphw::RingBuffer;
-    
+
     b->enable(false);
     b->clear();
     b->enable(true);
@@ -182,13 +180,11 @@ int main(int argc, char** argv) {
     }
   }
 
-#if 0
   printf("pllStatus 0x%x:%x\n",
-         unsigned(m->_pllStatus0),
-         unsigned(m->_pllStatus1));
+         unsigned(m->pllStatus0()),
+         unsigned(m->pllStatus1()));
   printf("pllConfig 0x%x\n",
-         unsigned(m->_pllConfig0));
-#endif 
+         unsigned(m->_pllConfig));
 
   for(unsigned j=0; j<5; j++) {
     for(unsigned i=0; i<2; i++) {
@@ -205,10 +201,8 @@ int main(int argc, char** argv) {
     m->pllBypass (false);
     m->pllReset  ();
     usleep(10000);
-#if 1
     printf("pllStatus 0x%x\n",
            unsigned(m->_pllConfig));
-#endif
   }
 
   if (freqSel>=0) {
@@ -231,7 +225,7 @@ int main(int argc, char** argv) {
 
   if (lreset) {
     unsigned linkReset=linkEnable;
-    for(unsigned i=0; linkReset; i++) 
+    for(unsigned i=0; linkReset; i++)
       if (linkReset&(1<<i)) {
         m->txLinkReset(i);
         m->rxLinkReset(i);
@@ -248,31 +242,37 @@ int main(int argc, char** argv) {
     m->setL0Select_FixedRate(fixedRate);
 
   m->clearLinks();
-  for(unsigned i=0; linkEnable; i++)
-    if (linkEnable&(1<<i)) {
+  unsigned links = linkEnable;
+  for(unsigned i=0; links; i++)
+    if (links&(1<<i)) {
       m->linkEnable(i,true);
-      linkEnable &= ~(1<<i);
+      links &= ~(1<<i);
     }
   L0Stats s = m->l0Stats();
   L0Stats s0 = s;
   m->setL0Enabled(true);
-  
+
   m->init();
-  printf("rx/tx Status: %08x/%08x\n", m->rxLinkStat(), m->txLinkStat());
+  links = linkEnable;
+  for(unsigned i=0; links; i++)
+    if (links&(1<<i)) {
+      printf("rx/tx Status: %08x/%08x\n", m->rxLinkStat(i), m->txLinkStat(i));
+      links &= ~(1<<i);
+    }
 
   ::signal( SIGINT, sigHandler );
 
   //
   //  Create thread to receive analysis tag requests
   //
-  { 
+  {
     pthread_attr_t tattr;
     pthread_attr_init(&tattr);
     pthread_t tid;
     if (pthread_create(&tid, &tattr, &handle_req, 0))
       perror("Error creating tag request thread");
   }
-  
+
   while(1) {
     usleep(1000000);
     L0Stats n = m->l0Stats();
@@ -302,7 +302,7 @@ int main(int argc, char** argv) {
 void* handle_req(void* arg)
 {
   int fd = ::socket(AF_INET, SOCK_DGRAM, 0);
-  if (fd<0) { 
+  if (fd<0) {
     perror("Error opening analysis tag request socket");
     return 0;
   }
@@ -323,7 +323,7 @@ void* handle_req(void* arg)
 
   m->_analysisRst = 0xffff;
   m->_analysisRst = 0;
-  
+
   uint32_t otag=0;
   while( recv(fd, request, 32, 0)==4 ) {
     uint32_t tag = *reinterpret_cast<uint32_t*>(request);
@@ -338,5 +338,5 @@ void* handle_req(void* arg)
   printf("Done handling requests\n");
   return 0;
 }
-  
-  
+
+

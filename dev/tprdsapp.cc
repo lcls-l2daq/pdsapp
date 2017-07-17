@@ -140,16 +140,16 @@ int main(int argc, char** argv) {
 
     Tpr::EvrReg* p = reinterpret_cast<Tpr::EvrReg*>(ptr);
 
-    printf("SLAC Version[%p]: %08x\n", 
+    printf("SLAC Version[%p]: %08x\n",
 	   &(p->evr),
 	   ((volatile uint32_t*)(&p->evr))[0x30>>2]);
 
     p->evr.IrqEnable(0);
 
-    printf("Axi Version [%p]: BuildStamp: %s\n", 
+    printf("Axi Version [%p]: BuildStamp: %s\n",
 	   &(p->version),
 	   p->version.buildStamp().c_str());
-    
+
     printf("[%p] [%p] [%p]\n",p, &(p->version), &(p->xbar));
 
     p->xbar.setTpr(Pds::Tpr::XBar::StraightIn);
@@ -175,7 +175,7 @@ int main(int argc, char** argv) {
   }
 
   TprDS::TprReg* p = reinterpret_cast<TprDS::TprReg*>(ptr);
-  
+
   { for(unsigned i=0; i<12; i++)
       p->base.channel[i].control=0;
     uint32_t data[1024];
@@ -186,7 +186,7 @@ int main(int argc, char** argv) {
     while( ::poll(&pfd,1,1000)>0 )
       ::read(fd,&desc,sizeof(Tpr::RxDesc));
   }
-  
+
 
   Pds::DetInfo src(p->base.partitionAddr,
                    info.detector(),info.detId(),
@@ -194,17 +194,17 @@ int main(int argc, char** argv) {
   printf("Using %s\n",Pds::DetInfo::name(src));
 
   TprDS::Server*  server  = new TprDS::Server (fd, src);
-  TprDS::Manager* manager = new TprDS::Manager(*p, *server, 
+  TprDS::Manager* manager = new TprDS::Manager(*p, *server,
                                                *new CfgClientNfs(src),
                                                lMonitor);
 
   Task* task = new Task(Task::MakeThisATask);
   std::list<Appliance*> apps;
   if (options.outfile)
-    apps.push_back(new RecorderQ(options.outfile, 
-                                 options.chunkSize, 
-                                 options.uSizeThreshold, 
-                                 options.delayXfer, 
+    apps.push_back(new RecorderQ(options.outfile,
+                                 options.chunkSize,
+                                 options.uSizeThreshold,
+                                 options.delayXfer,
                                  NULL,
                                  options.expname));
   switch(options.mode) {
@@ -219,7 +219,7 @@ int main(int argc, char** argv) {
   }
   apps.push_back(&manager->appliance());
   EventAppCallback* seg = new EventAppCallback(task, platform, apps);
-  FastSegWire settings(*server, p->base.partitionAddr, uniqueid, 
+  FastSegWire settings(*server, p->base.partitionAddr, uniqueid,
                        (1<<12), 16, (1<<15));
   SegmentLevel* seglevel = new SegmentLevel(platform, settings, *seg);
   seglevel->attach();

@@ -15,7 +15,7 @@
 #include <cpsw_mmio_dev.h>
 #include <cpsw_proto_mod_depack.h>
 
-#include "pds/xpm2/Module.hh"
+#include "pds/xpm/Module.hh"
 
 #include <string>
 
@@ -28,7 +28,7 @@ static inline double dtime(timespec& tsn, timespec& tso)
 
 extern int optind;
 
-using namespace Pds::Xpm2;
+using namespace Pds::Xpm;
 
 void usage(const char* p) {
   printf("Usage: %s [-a <IP addr (dotted notation)>]\n",p);
@@ -73,14 +73,14 @@ int main(int argc, char** argv) {
     exit(1);
   }
 
-  Pds::Cphw::Reg::set(ip, 8192, 0);
+  Pds::Cphw::Reg::set(ip, port, 0);
 
   Module* m = new((void*)0x80000000) Module;
 
 #ifdef USE_STREAM
   NetIODev  root = INetIODev::create("fpga", ip);
 
-  {  //  Register access                                                        
+  {  //  Register access
     INetIODev::PortBuilder bldr = INetIODev::createPortBuilder();
     bldr->setSRPVersion              ( INetIODev::SRP_UDP_V3 );
     bldr->setUdpPort                 (                  8193 );

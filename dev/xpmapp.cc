@@ -6,9 +6,9 @@
 #include "pds/management/EventAppCallback.hh"
 #include "pds/management/FastSegWire.hh"
 #include "pds/service/Task.hh"
-#include "pds/xpm2/Server.hh"
-#include "pds/xpm2/Manager.hh"
-#include "pds/xpm2/Module.hh"
+#include "pds/xpm/Server.hh"
+#include "pds/xpm/Manager.hh"
+#include "pds/xpm/Module.hh"
 #include "pds/cphw/AmcTiming.hh"
 
 #include "cadef.h"
@@ -23,7 +23,7 @@
 extern int optind;
 
 using namespace Pds;
-using namespace Pds::Xpm2;
+using namespace Pds::Xpm;
 
 static void sigHandler( int signal ) {
   Module* m = new(0) Module;
@@ -116,12 +116,12 @@ int main(int argc, char** argv) {
   if (fixedRate>=0)
     m->setL0Select_FixedRate(fixedRate);
 
-  Xpm2::Server*  server  = new Xpm2::Server (*m, info);
+  Xpm::Server*  server  = new Xpm::Server (*m, info);
   Manager* manager = new Manager(*m, *server,
                                  *new CfgClientNfs(info));
 
 //   //  EPICS thread initialization
-//   SEVCHK ( ca_context_create(ca_enable_preemptive_callback ), 
+//   SEVCHK ( ca_context_create(ca_enable_preemptive_callback ),
 //            "control calling ca_context_create" );
 
   Task* task = new Task(Task::MakeThisATask);

@@ -64,17 +64,17 @@ tgtincs_xamps := pdsdata/include
 tgtsrcs_epixsampler := epixsampler.cc
 tgtlibs_epixsampler := $(commonlibs) pds/epixsampler pds/pgp pds/configdata
 tgtslib_epixsampler := $(commonslib)
-tgtincs_epixsampler := pdsdata/include ndarray/include boost/include 
+tgtincs_epixsampler := pdsdata/include ndarray/include boost/include
 
 tgtsrcs_epix := epix.cc
 tgtlibs_epix := $(commonlibs) pds/epix pds/pgp pds/configdata
 tgtslib_epix := $(commonslib)
-tgtincs_epix := pdsdata/include ndarray/include boost/include 
+tgtincs_epix := pdsdata/include ndarray/include boost/include
 
 tgtsrcs_epix10k := epix10k.cc
 tgtlibs_epix10k := $(commonlibs) pds/epix10k pds/pgp pds/configdata
 tgtslib_epix10k := $(commonslib)
-tgtincs_epix10k := pdsdata/include ndarray/include boost/include 
+tgtincs_epix10k := pdsdata/include ndarray/include boost/include
 
 tgtsrcs_epix100a := epix100a.cc
 tgtlibs_epix100a := $(commonlibs) pds/epix100a pds/pgp pds/configdata
@@ -86,12 +86,12 @@ tgtincs_epix100a := pdsdata/include ndarray/include boost/include
 tgtsrcs_genericpgp := genericpgp.cc
 tgtlibs_genericpgp := $(commonlibs) pds/genericpgp pds/pgp pds/configdata
 tgtslib_genericpgp := $(commonslib)
-tgtincs_genericpgp := pdsdata/include ndarray/include boost/include 
+tgtincs_genericpgp := pdsdata/include ndarray/include boost/include
 
 tgtsrcs_imp := imp.cc
 tgtlibs_imp := $(commonlibs) pds/imp pds/pgp pds/configdata
 tgtslib_imp := $(commonslib)
-tgtincs_imp := pdsdata/include ndarray/include boost/include 
+tgtincs_imp := pdsdata/include ndarray/include boost/include
 
 tgtsrcs_pnccd := pnccd.cc
 tgtlibs_pnccd := $(commonlibs) pds/pnccd pds/pnccdFrameV0 pds/pgp pds/configdata
@@ -104,40 +104,40 @@ tgtsrcs_cspad := cspad.cc
 tgtlibs_cspad := $(commonlibs) pds/cspad pds/pgp
 tgtlibs_cspad += pds/clientcompress pds/pnccdFrameV0 pdsdata/compressdata pds/configdata
 tgtslib_cspad := $(commonslib) $(USRLIBDIR)/dl
-tgtincs_cspad := pdsdata/include ndarray/include boost/include 
+tgtincs_cspad := pdsdata/include ndarray/include boost/include
 
 tgtsrcs_cspad2x2 := cspad2x2.cc
 tgtlibs_cspad2x2 := $(commonlibs) pds/cspad2x2 pds/pgp
 tgtlibs_cspad2x2 += pds/clientcompress pds/pnccdFrameV0 pds/configdata pdsdata/compressdata
 tgtslib_cspad2x2 := $(commonslib)
-tgtincs_cspad2x2 := pdsdata/include ndarray/include boost/include 
+tgtincs_cspad2x2 := pdsdata/include ndarray/include boost/include
 
 tgtsrcs_acq := acq.cc
-tgtincs_acq := acqiris pdsdata/include ndarray/include boost/include 
+tgtincs_acq := acqiris pdsdata/include ndarray/include boost/include
 tgtlibs_acq := $(commonlibs) pds/acqiris acqiris/AqDrv4
 tgtlibs_acq += pds/epicstools epics/ca epics/Com
 tgtslib_acq := $(commonslib)
 
 tgtsrcs_ipimb := ipimb.cc
-tgtincs_ipimb := ipimb pdsdata/include ndarray/include boost/include 
+tgtincs_ipimb := ipimb pdsdata/include ndarray/include boost/include
 tgtlibs_ipimb := $(commonlibs) pds/ipimb
 tgtslib_ipimb := $(commonslib)
 
 tgtsrcs_lusidiag := lusidiag.cc
-tgtincs_lusidiag := lusidiag pdsdata/include ndarray/include boost/include 
+tgtincs_lusidiag := lusidiag pdsdata/include ndarray/include boost/include
 tgtlibs_lusidiag := $(commonlibs) pds/ipimb
 tgtslib_lusidiag := $(commonslib)
 
 tgtsrcs_encoder := encoder.cc
-tgtincs_encoder := encoder pdsdata/include ndarray/include boost/include 
+tgtincs_encoder := encoder pdsdata/include ndarray/include boost/include
 tgtlibs_encoder := $(commonlibs) pds/encoder
 tgtslib_encoder := $(commonslib)
 
 tgtsrcs_usdusb := usdusb.cc
-tgtincs_usdusb := usdusb4/include libusb/include/libusb-1.0 
-tgtincs_usdusb += pdsdata/include ndarray/include boost/include 
+tgtincs_usdusb := usdusb4/include libusb/include/libusb-1.0
+tgtincs_usdusb += pdsdata/include ndarray/include boost/include
 tgtlibs_usdusb := $(commonlibs) pds/usdusb usdusb4/usdusb4 libusb/usb-1.0
-tgtslib_usdusb := $(commonslib) 
+tgtslib_usdusb := $(commonslib)
 
 tgtsrcs_lecroy := lecroy.cc
 tgtincs_lecroy := pdsdata/include ndarray/include boost/include
@@ -147,23 +147,23 @@ tgtlibs_lecroy += pds/epicstools epics/ca epics/Com
 tgtslib_lecroy := $(commonslib)
 
 tgtsrcs_evr := evr.cc
-tgtincs_evr := evgr pdsdata/include ndarray/include boost/include  
+tgtincs_evr := evgr pdsdata/include ndarray/include boost/include
 tgtlibs_evr := pdsdata/xtcdata pdsdata/psddl_pdsdata pds/configdata
-tgtlibs_evr += evgr/evr evgr/evg 
-tgtlibs_evr += $(commonlibs) pds/evgr 
+tgtlibs_evr += evgr/evr evgr/evg
+tgtlibs_evr += $(commonlibs) pds/evgr
 tgtslib_evr := $(commonslib)
 
 tgtsrcs_evrstandalone := evrstandalone.cc
 tgtincs_evrstandalone := evgr pdsdata/include
 tgtlibs_evrstandalone := $(commonlibs) pds/configdata
-tgtlibs_evrstandalone += evgr/evr evgr/evg 
+tgtlibs_evrstandalone += evgr/evr evgr/evg
 tgtlibs_evrstandalone += pds/evgr
 tgtslib_evrstandalone := $(commonslib)
 
 tgtsrcs_evrsnoop := evrsnoop.cc
 tgtincs_evrsnoop := evgr pdsdata/include
 tgtlibs_evrsnoop := $(commonlibs) pds/configdata
-tgtlibs_evrsnoop += evgr/evr evgr/evg 
+tgtlibs_evrsnoop += evgr/evr evgr/evg
 tgtlibs_evrsnoop += pds/evgr
 tgtslib_evrsnoop := $(commonslib)
 
@@ -182,23 +182,23 @@ edt_libs := pds/camedt edt/pdv
 
 cam_libs := pdsdata/psddl_pdsdata
 
-tgtsrcs_cam := cam.cc 
+tgtsrcs_cam := cam.cc
 tgtlibs_cam := $(commonlibs) $(cam_libs)
 tgtlibs_cam += pds/camera pds/epicstools epics/ca epics/Com
 tgtlibs_cam += pds/clientcompress pds/pnccdFrameV0 pdsdata/compressdata pds/configdata
 tgtlibs_cam += pds/service pdsdata/xtcdata
 tgtlibs_cam += $(leutron_libs)
 tgtslib_cam := $(commonslib)
-tgtincs_cam := leutron/include pdsdata/include ndarray/include boost/include  
+tgtincs_cam := leutron/include pdsdata/include ndarray/include boost/include
 tgtincs_cam += epics/include epics/include/os/Linux
 
-tgtsrcs_camedt := camedt.cc 
+tgtsrcs_camedt := camedt.cc
 tgtlibs_camedt := $(commonlibs) $(cam_libs)
 tgtlibs_camedt += pds/camera pds/epicstools epics/ca epics/Com
 tgtlibs_camedt += pds/clientcompress pds/pnccdFrameV0 pdsdata/compressdata pds/configdata
 tgtlibs_camedt += $(edt_libs)
 tgtslib_camedt := $(commonslib) $(USRLIBDIR)/dl
-tgtincs_camedt := edt/include pdsdata/include ndarray/include boost/include  
+tgtincs_camedt := edt/include pdsdata/include ndarray/include boost/include
 tgtincs_camedt += epics/include epics/include/os/Linux
 
 tgtsrcs_phasics := phasics.cc
@@ -211,75 +211,75 @@ tgtslib_phasics := $(commonslib)/rt
 tgtsrcs_epicsArch := epicsArch.cc
 tgtlibs_epicsArch := $(commonlibs) pds/epicsArch epics/ca epics/Com
 tgtslib_epicsArch := $(commonslib)
-tgtincs_epicsArch := pdsdata/include ndarray/include boost/include 
+tgtincs_epicsArch := pdsdata/include ndarray/include boost/include
 
-tgtsrcs_bld := bld.cc 
-tgtlibs_bld := $(commonlibs) 
+tgtsrcs_bld := bld.cc
+tgtlibs_bld := $(commonlibs)
 tgtlibs_bld += pds/clientcompress pds/pnccdFrameV0 pdsdata/compressdata
 tgtslib_bld := $(commonslib) /usr/lib64/pthread
-tgtincs_bld := pdsdata/include ndarray/include boost/include  
+tgtincs_bld := pdsdata/include ndarray/include boost/include
 
 tgtsrcs_princeton := princeton.cc
-tgtlibs_princeton := $(commonlibs) pds/princeton pvcam/pvcam 
+tgtlibs_princeton := $(commonlibs) pds/princeton pvcam/pvcam
 tgtlibs_princeton += pdsapp/configdb pds/configdata
 tgtslib_princeton := $(commonslib) dl pthread
-tgtincs_princeton := pdsdata/include ndarray/include boost/include 
+tgtincs_princeton := pdsdata/include ndarray/include boost/include
 
 tgtsrcs_princetonsim := princeton.cc
 tgtlibs_princetonsim := $(commonlibs) pds/princeton pvcam/pvcamtest
 tgtlibs_princetonsim += pdsapp/configdb pds/configdata
 tgtslib_princetonsim := $(commonslib) dl pthread
-tgtincs_princetonsim := pdsdata/include ndarray/include boost/include 
+tgtincs_princetonsim := pdsdata/include ndarray/include boost/include
 
-tgtsrcs_simcam := simcam.cc 
+tgtsrcs_simcam := simcam.cc
 tgtsrcs_simcam += SimCam.cc
 tgtlibs_simcam := $(commonlibs) $(cam_libs)
 tgtlibs_simcam += pds/clientcompress pds/pnccdFrameV0 pdsdata/compressdata pds/configdata
 tgtlibs_simcam += pds/camera pds/epicstools epics/ca epics/Com
 tgtslib_simcam := $(commonslib) pthread dl
-tgtincs_simcam := pdsdata/include ndarray/include boost/include   
+tgtincs_simcam := pdsdata/include ndarray/include boost/include
 
 
 tgtsrcs_gsc16ai := gsc16ai.cc
 tgtlibs_gsc16ai := $(commonlibs) pds/gsc16ai
 tgtslib_gsc16ai := $(commonslib)
-tgtincs_gsc16ai := pdsdata/include ndarray/include boost/include 
+tgtincs_gsc16ai := pdsdata/include ndarray/include boost/include
 
 tgtsrcs_rayonix := rayonix.cc
 tgtlibs_rayonix := $(commonlibs) pds/rayonix
 tgtslib_rayonix := $(commonslib)
-tgtincs_rayonix := pdsdata/include ndarray/include boost/include 
+tgtincs_rayonix := pdsdata/include ndarray/include boost/include
 
 tgtsrcs_udpcam := udpcam.cc
 tgtlibs_udpcam := $(commonlibs) pds/udpcam
 tgtslib_udpcam := $(commonslib)
-tgtincs_udpcam := pdsdata/include ndarray/include boost/include 
+tgtincs_udpcam := pdsdata/include ndarray/include boost/include
 
 tgtsrcs_pvdaq := pvdaq.cc
 tgtlibs_pvdaq := $(commonlibs) pds/pvdaq
 tgtlibs_pvdaq += pds/epicstools epics/ca epics/Com
 tgtslib_pvdaq := $(commonslib)
-tgtincs_pvdaq := pdsdata/include ndarray/include boost/include 
+tgtincs_pvdaq := pdsdata/include ndarray/include boost/include
 tgtincs_pvdaq += epics/include epics/include/os/Linux
 
 tgtsrcs_oceanoptics := oceanoptics.cc
 tgtlibs_oceanoptics := $(commonlibs) pds/oceanoptics pds/oopt
 tgtslib_oceanoptics := $(commonslib)
-tgtincs_oceanoptics := pdsdata/include ndarray/include boost/include 
+tgtincs_oceanoptics := pdsdata/include ndarray/include boost/include
 
 tgtsrcs_fli := fli.cc
-tgtlibs_fli := $(commonlibs) 
+tgtlibs_fli := $(commonlibs)
 tgtlibs_fli += pdsapp/configdb
 tgtlibs_fli += pds/fli fli/flisdk pds/configdata
-tgtslib_fli := $(commonslib) ${USRLIBDIR}/dl ${USRLIBDIR}/pthread 
-tgtincs_fli := pdsdata/include ndarray/include boost/include 
+tgtslib_fli := $(commonslib) ${USRLIBDIR}/dl ${USRLIBDIR}/pthread
+tgtincs_fli := pdsdata/include ndarray/include boost/include
 
 tgtsrcs_andor := andor.cc
-tgtlibs_andor := $(commonlibs) 
+tgtlibs_andor := $(commonlibs)
 tgtlibs_andor += pdsapp/configdb
 tgtlibs_andor += pds/pdsandor pds/configdata andor/andor
 tgtlibs_andor += epics/ca epics/Com
-tgtslib_andor := $(commonslib) ${USRLIBDIR}/dl ${USRLIBDIR}/pthread 
+tgtslib_andor := $(commonslib) ${USRLIBDIR}/dl ${USRLIBDIR}/pthread
 tgtincs_andor := pdsdata/include ndarray/include boost/include epics/include epics/include/os/Linux
 
 tgtsrcs_andordual := andordual.cc
@@ -307,7 +307,7 @@ tgtincs_pimax := pdsdata/include ndarray/include boost/include
 #  LCLS-II development
 #
 
-#tgtnames := tpr tprclk tprbsa tprtrg xpm xpm2 xpmapp xpmerr tprx tprds tprdsapp simapp xpmsim
+#tgtnames := tpr tprclk tprbsa tprtrg xpm xpmapp xpmerr tprx tprds tprdsapp simapp xpmsim
 tgtnames := tprclk xpm xpmapp xpmerr simapp xpmsim
 
 ifneq ($(findstring rhel7,$(tgt_arch)),)
@@ -317,11 +317,12 @@ endif
 
 tgtnames += evr
 tgtnames += xpmtest
+tgtnames += xpmAmcPll
 
 commonlibs += offlinedb/mysqlclient offlinedb/offlinedb pds/offlineclient
 commonlibs += pdsdata/indexdata pdsdata/smalldata
 
-tgtsrcs_tpr := tpr.cc 
+tgtsrcs_tpr := tpr.cc
 tgtincs_tpr := evgr
 tgtincs_tpr := pdsdata/include ndarray/include boost/include
 tgtlibs_tpr := evgr/evr pds/tpr
@@ -372,19 +373,19 @@ tgtsrcs_pgpds_recv := pgpds_recv.cc
 tgtincs_pgpds_recv := pgpcard
 tgtslib_pgpds_recv := dl pthread rt
 
-tgtsrcs_xpm := xpm.cc 
-tgtlibs_xpm := pds/xpm2base pds/cphwr
+tgtsrcs_xpm := xpm.cc
+tgtlibs_xpm := pds/xpmbase pds/cphwr
 tgtslib_xpm := dl pthread rt
 
-tgtsrcs_xpmtest := xpmtest.cc 
-tgtlibs_xpmtest := pds/xpm2base pds/cphw cpsw/cpsw yaml/yaml-cpp
+tgtsrcs_xpmtest := xpmtest.cc
+tgtlibs_xpmtest := pds/xpmbase pds/cphw cpsw/cpsw yaml/yaml-cpp
 tgtslib_xpmtest := dl pthread rt
 tgtincs_xpmtest := cpsw/include cpsw_boost/include yaml/include
 
 tgtsrcs_xpmapp := xpmapp.cc
 tgtincs_xpmapp := pdsdata/include ndarray/include boost/include
 tgtincs_xpmapp += epics/include epics/include/os/Linux
-tgtlibs_xpmapp := pds/xpm2 pds/cphw pds/tag cpsw/cpsw yaml/yaml-cpp
+tgtlibs_xpmapp := pds/xpm pds/cphw pds/tag cpsw/cpsw yaml/yaml-cpp
 tgtlibs_xpmapp += $(commonlibs)
 tgtlibs_xpmapp += pds/epicstools epics/ca epics/Com
 tgtslib_xpmapp := dl pthread rt
@@ -397,21 +398,25 @@ tgtlibs_xpmsim += $(commonlibs) pdsapp/tools
 tgtlibs_xpmsim += pds/epicstools epics/ca epics/Com
 tgtslib_xpmsim := dl pthread rt
 
-tgtsrcs_xpmerr := xpmerr.cc 
-tgtlibs_xpmerr := pds/xpm2base pds/cphw cpsw/cpsw yaml/yaml-cpp
+tgtsrcs_xpmerr := xpmerr.cc
+tgtlibs_xpmerr := pds/xpmbase pds/cphw cpsw/cpsw yaml/yaml-cpp
 tgtslib_xpmerr := dl pthread rt
 
-tgtsrcs_simapp := simapp.cc 
+tgtsrcs_xpmAmcPll := xpmAmcPll.cc
+tgtlibs_xpmAmcPll := pds/xpmbase pds/cphw cpsw/cpsw yaml/yaml-cpp
+tgtslib_xpmAmcPll := dl pthread rt
+
+tgtsrcs_simapp := simapp.cc
 tgtincs_simapp := pdsdata/include
 tgtlibs_simapp := pdsdata/xtcdata pdsapp/tools pds/service pds/collection pds/utility pds/vmon pds/mon
 tgtlibs_simapp += $(commonlibs)
 tgtslib_simapp := dl pthread rt
 
 tgtsrcs_evr := evr.cc
-tgtincs_evr := evgr pdsdata/include ndarray/include boost/include  
+tgtincs_evr := evgr pdsdata/include ndarray/include boost/include
 tgtlibs_evr := pdsdata/xtcdata pdsdata/psddl_pdsdata pds/configdata
-tgtlibs_evr += evgr/evr evgr/evg 
-tgtlibs_evr += $(commonlibs) pds/evgr 
+tgtlibs_evr += evgr/evr evgr/evg
+tgtlibs_evr += $(commonlibs) pds/evgr
 tgtslib_evr := $(commonslib)
 
 #tgtnames := tprclk tprds

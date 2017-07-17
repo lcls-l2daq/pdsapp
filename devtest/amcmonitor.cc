@@ -18,7 +18,6 @@ void usage(const char* p) {
 int main(int argc, char* argv[])
 {
   extern char* optarg;
-  char* endptr;
   char c;
 
   const char* ip = 0;
@@ -38,7 +37,7 @@ int main(int argc, char* argv[])
     }
   }
 
-  Pds::Cphw::Reg::set(ip, 0, 0);
+  Pds::Cphw::Reg::set(ip, 8192, 0);
   Pds::Cphw::AmcTiming* t = new((void*)0) Pds::Cphw::AmcTiming;
 
   unsigned rxErrs = 0;

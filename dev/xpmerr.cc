@@ -11,7 +11,7 @@
 #include <signal.h>
 #include <new>
 
-#include "pds/xpm2/Module.hh"
+#include "pds/xpm/Module.hh"
 #include "pds/cphw/RingBuffer.hh"
 
 #include <string>
@@ -23,10 +23,12 @@ static inline double dtime(timespec& tsn, timespec& tso)
 
 extern int optind;
 
-using namespace Pds::Xpm2;
+using namespace Pds::Xpm;
 
 void usage(const char* p) {
-  printf("Usage: %s [-a <IP addr (dotted notation)>]\n",p);
+  printf("Usage: %s [options]\n",p);
+  printf("Options: -a <IP addr (dotted notation)> : Use network <IP>\n");
+  printf("         -L <0 - 7>                     : Enable selected link\n");
 }
 
 void sigHandler( int signal ) {
@@ -44,11 +46,19 @@ int main(int argc, char** argv) {
 
   const char* ip = "192.168.2.10";
   unsigned short port = 8192;
+  int fixedRate=-1;
+  unsigned linkEnable=0;
 
-  while ( (c=getopt( argc, argv, "a:F:h")) != EOF ) {
+  while ( (c=getopt( argc, argv, "a:F:L:h")) != EOF ) {
     switch(c) {
     case 'a':
       ip = optarg; break;
+      break;
+    case 'F':
+      fixedRate = atoi(optarg);
+      break;
+    case 'L':
+      linkEnable = strtoul(optarg,NULL,0);
       break;
     case '?':
     default:
@@ -65,11 +75,11 @@ int main(int argc, char** argv) {
   Pds::Cphw::Reg::set(ip, port, 0x80000000);
 
   Module* m = new(0) Module;
-  
+
   while(1) {
-    unsigned rx = m->rxLinkStat();
-    unsigned tx = m->txLinkStat();
-    printf("rx/tx Status: %08x/%08x \t %c %c %04x %c\n", 
+    unsigned rx = m->rxLinkStat(linkEnable);
+    unsigned tx = m->txLinkStat(linkEnable);
+    printf("rx/tx Status: %08x/%08x \t %c %c %04x %c\n",
            rx,tx,
            ((rx>>31)&1)?'.':'+',
            ((rx>>30)&1)?'.':'+',

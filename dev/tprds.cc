@@ -65,7 +65,7 @@ public:
   unsigned& anaErrs     () { return _values[6]; }
 private:
   std::vector<unsigned> _values;
-};  
+};
 
 const char** DaqStats::names() {
   static const char* _names[] = {"eventFrames",
@@ -103,7 +103,7 @@ public:
   unsigned& idleCount    () { return _values[3]; }
 private:
   std::vector<unsigned> _values;
-};  
+};
 
 const char** DmaStats::names() {
   static const char* _names[] = {"frameCount",
@@ -140,7 +140,7 @@ private:
   timespec tv;
   T _t;
 };
-  
+
 
 static DaqStats  daqStats;
 static Pds::Histogram readSize(6,1);
@@ -179,12 +179,14 @@ int main(int argc, char** argv) {
   args.fd = -1;
   args.busyTime = 0;
   bool ldump=false;
+  bool polarity = false;
 
   int c;
   bool lUsage = false;
-  while ( (c=getopt( argc, argv, "r:v:S:B:E:F:R:P:T:dh")) != EOF ) {
+  while ( (c=getopt( argc, argv, "r:v:S:B:E:F:R:P:T:dph")) != EOF ) {
     switch(c) {
     case 'd': ldump=true; break;
+    case 'p': polarity=true; break;
     case 'r':
       evrid  = optarg[0];
       if (strlen(optarg) != 1) {
@@ -258,16 +260,20 @@ int main(int argc, char** argv) {
 
     EvrReg* p = reinterpret_cast<EvrReg*>(ptr);
 
-    printf("SLAC Version[%p]: %08x\n", 
+    printf("SLAC Version[%p]: %08x\n",
 	   &(p->evr),
 	   ((volatile uint32_t*)(&p->evr))[0x30>>2]);
 
+    printf("FPGA Version[%p]: %08x\n",
+           &(p->version.FpgaVersion),
+           p->version.FpgaVersion);
+
     p->evr.IrqEnable(0);
 
-    printf("Axi Version [%p]: BuildStamp: %s\n", 
+    printf("Axi Version [%p]: BuildStamp: %s\n",
 	   &(p->version),
 	   p->version.buildStamp().c_str());
-    
+
     printf("[%p] [%p] [%p]\n",p, &(p->version), &(p->xbar));
 
     p->xbar.setTpr(XBar::StraightIn);
@@ -280,11 +286,11 @@ int main(int argc, char** argv) {
   //
   if (addr_req) {
     int fd = ::socket(AF_INET, SOCK_DGRAM, 0);
-    if (fd<0) { 
+    if (fd<0) {
       perror("Error opening analysis tag request socket");
       return 0;
     }
-    
+
     struct sockaddr_in addr;
     bzero(&addr, sizeof(addr));
     addr.sin_family = AF_INET;
@@ -323,9 +329,9 @@ int main(int argc, char** argv) {
 
     TprReg* p = tprReg = reinterpret_cast<TprReg*>(ptr);
 
-    p->tpr.rxPolarity(false);  // RTM
+    p->tpr.rxPolarity(polarity);  // false = RTM
     //    p->tpr.rxPolarity(true); // Timing RTM
-    p->tpr.resetCounts(); 
+    p->tpr.resetCounts();
     p->dma.setEmptyThr(emptyThr);
     p->base.dmaFullThr=fullThr;
 
@@ -349,7 +355,7 @@ int main(int argc, char** argv) {
       pollfd pfd;
       pfd.fd = args.fd;
       pfd.events = POLLIN;
-      while(poll(&pfd,1,0)>0) { 
+      while(poll(&pfd,1,0)>0) {
         read(args.fd, desc, sizeof(*desc));
         nflush++;
       }
@@ -357,11 +363,11 @@ int main(int argc, char** argv) {
       delete desc;
       printf("done flushing [%u]\n",nflush);
     }
-    
+
     //
     //  Create thread to receive DMAS and validate the data
     //
-    { 
+    {
       pthread_attr_t tattr;
       pthread_attr_init(&tattr);
       pthread_t tid;
@@ -407,7 +413,7 @@ int main(int argc, char** argv) {
       ostats = stats; }
 
     { unsigned v = p->tpr.RxDecErrs+p->tpr.RxDspErrs;
-      printf("RxErrs/Resets: %08x/%08x [%x]\n", 
+      printf("RxErrs/Resets: %08x/%08x [%x]\n",
              v,
              p->tpr.RxRstDone,
              v-rxErrs);
@@ -434,9 +440,9 @@ void* read_thread(void* arg)
   ThreadArgs targs = *reinterpret_cast<ThreadArgs*>(arg);
 
   uint32_t* data = new uint32_t[1024];
-  
+
   RxDesc* desc = new RxDesc(data,1024);
-  
+
   unsigned ntag = 0;
   uint64_t opid = 0;
   unsigned anaw = 0;
@@ -517,7 +523,7 @@ void* read_thread(void* arg)
             uint32_t* p32 = (uint32_t*)data;
             for(unsigned i=0; i<15; i++)
               printf(" %08x",p32[i]);
-            printf("\n"); 
+            printf("\n");
           }
           else
             daqStats.tagMisses() += ((tag-ntag)&0x1f);
