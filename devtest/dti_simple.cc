@@ -50,6 +50,7 @@ private:  // only what's necessary here
       if (fwdmask) {
         // enable=T, tagEnable=F, L1Enable=F, partn=0, fwdMode=RR
         _control = 1 | ((delay&0xff)<<8) | ((fwdmask&0x1fff)<<16);
+        //        _control = 1 | ((delay&0xff)<<8) | ((0&0x1fff)<<16);
       }
       else {
         _control = 0;
@@ -81,9 +82,11 @@ private:  // only what's necessary here
   class Pgp2bAxi {
   public:
     Reg      _countReset;
-    uint32_t _reserved[17];
+    uint32_t _reserved[16];
+    Reg      _rxFrameErrs;
     Reg      _rxFrames;
-    uint32_t _reserved2[5];
+    uint32_t _reserved2[4];
+    Reg      _txFrameErrs;
     Reg      _txFrames;
     uint32_t _reserved3[5];
     Reg      _txOpcodes;
@@ -137,7 +140,9 @@ public:
       *dv++ = q - *v;         \
       *v++  = q; }
     PFILL(_rxFrames);
+    PFILL(_rxFrameErrs);
     PFILL(_txFrames);
+    PFILL(_txFrameErrs);
     PFILL(_rxOpcodes);
     PFILL(_txOpcodes);
   }
@@ -172,7 +177,7 @@ int main(int argc, char** argv) {
   Dti* dti = new (0)Dti;
   dti->start();
 
-  uint32_t stats[15], dstats[15];
+  uint32_t stats[19], dstats[19];
   memset(stats, 0, sizeof(stats));
   static const char* title[] = 
     { "usRxErrs   ",
@@ -184,8 +189,12 @@ int main(int argc, char** argv) {
       "dsObSent   ",
       "usRxFrames ",
       "dsRxFrames ",
+      "usRxFrErrs ",
+      "dsRxFrErrs ",
       "usTxFrames ",
       "dsTxFrames ",
+      "usTxFrErrs ",
+      "dsTxFrErrs ",
       "usRxOpcodes",
       "dsRxOpcodes",
       "usTxOpcodes",
@@ -194,7 +203,7 @@ int main(int argc, char** argv) {
   while(1) {
     sleep(1);
     dti->stats(stats,dstats);
-    for(unsigned i=0; i<15; i++)
+    for(unsigned i=0; i<19; i++)
       printf("%s: %010u [%010u]\n", title[i], stats[i], dstats[i]);
     printf("----\n");
   }

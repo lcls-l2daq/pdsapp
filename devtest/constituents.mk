@@ -161,7 +161,7 @@ tgtincs_netlink :=
 libnames :=
 #tgtnames := tasktest xcasttest quadadc quadadc_dma amctiming
 #tgtnames := tasktest xcasttest quadadc quadadc_dma quadadc_mon quadadc_cal amctiming amcmonitor tprca
-tgtnames := tasktest xcasttest amctiming amcmonitor tprca xpm_simple dti_simple
+tgtnames := tasktest xcasttest amctiming amcmonitor tprca xpm_simple dti_simple xpm_links
 
 tgtsrcs_tasktest := tasktest.cc
 tgtlibs_tasktest := pds/service pdsdata/xtcdata
@@ -322,3 +322,11 @@ tgtlibs_dti_simple := pds/cphw cpsw/cpsw yaml/yaml-cpp
 tgtslib_dti_simple := rt dl
 
 #tgtnames := dti_simple
+
+tgtsrcs_xpm_links := xpm_links.cc
+tgtincs_xpm_links := cpsw/include cpsw_boost/include yaml/include
+tgtlibs_xpm_links := pds/cphw cpsw/cpsw yaml/yaml-cpp
+tgtslib_xpm_links := rt dl
+
+#tgtnames := xpm_links
+

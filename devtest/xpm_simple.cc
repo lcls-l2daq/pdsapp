@@ -28,6 +28,7 @@ extern int optind;
 void usage(const char* p) {
   printf("Usage: %s [options]\n",p);
   printf("Options: -a <IP addr (dotted notation)> : Use network <IP>\n");
+  printf("         -e                             : Enable DTI link\n");
 }
 
 class Xpm {
@@ -40,9 +41,11 @@ private:
   private:
     Reg    _control;
   public:
-    void setup() {
+    void setup(bool lEnable) {
       // txDelay=0, partn=0, src=0, lb=F, txReset=F, rxReset=F, enable=F
-      _control = 0;
+      //      _control = 0;
+      // txDelay=0, partn=0, src=0, lb=F, txReset=F, rxReset=F, enable=F
+      _control = lEnable ? (1<<31) : 0;
     }
   } _linkConfig;
   
@@ -88,12 +91,17 @@ private:
     Reg64 _naccepted;
     Reg64 _nacceptedl1;
   } _partitionStatus;
+
+  Reg _reserved1[(144-76)>>2];
+
+  Reg _partitionSrcInhibits[32];
+
 public:
   Xpm() {}
-  void start(unsigned rate) {
+  void start(unsigned rate, bool lEnableDTI) {
     // Configure dslink
     _index = (5<<4);
-    _linkConfig.setup();
+    _linkConfig.setup(lEnableDTI);
     // Setup partition
     _partitionL0Config.start(rate);
   }
@@ -111,6 +119,18 @@ public:
     FILL(_ninput);
     FILL(_ninhibited);
     FILL(_naccepted);
+#undef FILL
+  }
+  void inhibits(uint32_t* v, 
+                uint32_t* dv) {
+    
+#define FILL(s) {     \
+      uint32_t q = _partitionSrcInhibits[s]; \
+      *dv++ = q - *v; \
+      *v++  = q; }
+    for(unsigned i=0; i<32; i++) 
+      FILL(i);
+#undef FILL
   }
 };
 
@@ -130,10 +150,12 @@ int main(int argc, char** argv) {
 
   const char* ip  = "10.0.1.102";
   unsigned fixed_rate = 6;
+  bool lEnableDTI=false;
 
-  while ( (c=getopt( argc, argv, "a:r:")) != EOF ) {
+  while ( (c=getopt( argc, argv, "a:er:")) != EOF ) {
     switch(c) {
     case 'a': ip = optarg; break;
+    case 'e': lEnableDTI=true; break;
     case 'r': fixed_rate = strtoul(optarg,NULL,0); break;
     default:  usage(argv[0]); return 0;
     }
@@ -144,7 +166,7 @@ int main(int argc, char** argv) {
   //  Setup XPM
   Pds::Cphw::Reg::set(ip, 8192, 0);
   Xpm* xpm = new (0)Xpm;
-  xpm->start(fixed_rate);
+  xpm->start(fixed_rate, lEnableDTI);
 
   uint64_t stats[5], dstats[5];
   memset(stats, 0, sizeof(stats));
@@ -153,11 +175,19 @@ int main(int argc, char** argv) {
                                  "ninput    ",
                                  "ninhibited",
                                  "naccepted " };
+  uint32_t inh[32], dinh[32];
+  memset(inh, 0, sizeof(inh));
+
   while(1) {
     sleep(1);
     xpm->stats(stats,dstats);
     for(unsigned i=0; i<5; i++)
       printf("%s: %016llu [%010llu]\n", title[i], stats[i], dstats[i]);
+
+    xpm->inhibits(inh,dinh);
+    for(unsigned i=0; i<32; i++)
+      printf("%09u [%09u]%s", inh[i], dinh[i], (i&3)==3 ? "\n":"  ");
+
     printf("----\n");
   }
 
