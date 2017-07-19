@@ -144,6 +144,10 @@ int main(int argc, char** argv) {
 	   &(p->evr),
 	   ((volatile uint32_t*)(&p->evr))[0x30>>2]);
 
+    printf("FPGA Version[%p]: %08x\n",
+           &(p->version.FpgaVersion),
+           p->version.FpgaVersion);
+
     p->evr.IrqEnable(0);
 
     printf("Axi Version [%p]: BuildStamp: %s\n",

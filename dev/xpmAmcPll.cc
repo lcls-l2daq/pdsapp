@@ -16,7 +16,7 @@
 
 #include <string>
 
-enum { NDSLinks = 7 };
+enum { NDSLinks = 14 };
 
 extern int optind;
 
@@ -235,13 +235,11 @@ int main(int argc, char** argv) {
   //
   //  Create thread to report results
   //
-  {
-    pthread_attr_t tattr;
-    pthread_attr_init(&tattr);
-    pthread_t tid;
-    if (pthread_create(&tid, &tattr, &handle_results, &lr))
-      perror("Error creating results reporting thread");
-  }
+  pthread_attr_t tattr;
+  pthread_attr_init(&tattr);
+  pthread_t tid;
+  if (pthread_create(&tid, &tattr, &handle_results, &lr))
+    perror("Error creating results reporting thread");
 
   unsigned  count = 0;
   while (!lr.done)
@@ -266,6 +264,9 @@ int main(int argc, char** argv) {
   }
 
   m->setL0Enabled(false);
+
+  void* retVal;
+  pthread_join(tid, &retVal);
 
   return 0;
 }
@@ -306,5 +307,7 @@ void* handle_results(void* arg)
   print(lr->linkEnables, count, rxErrs, cntN - cnt0);
 
   lr->done = true;
+
+  pthread_exit(0);
   return 0;
 }
