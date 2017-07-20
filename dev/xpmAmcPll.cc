@@ -16,7 +16,10 @@
 
 #include <string>
 
-enum { NDSLinks = 14 };
+enum { NDSLinks = 7 };                  // Revisit: Needs to go to 14, but not yet sure how channels are numbered
+
+static const unsigned remap[] = { 2, 3, 4, 5, 0, 1, 6, 7 }; // Compensate according to sheet 6 of the schematic
+
 
 extern int optind;
 
@@ -38,6 +41,7 @@ static void* handle_results(void*);
 void usage(const char* p) {
   printf("Usage: %s [options]\n",p);
   printf("Options: -a <IP addr (dotted notation)> : Use network <IP>\n");
+  printf("         -p <port>                      : Use netowrk <port>\n");
   printf("         -L <ds link mask>              : Enable selected link(s)\n");
   printf("         -R                             : Reset selected link(s)\n");
   printf("         -l                             : Put selected link(s) in loopback mode\n");
@@ -81,8 +85,8 @@ int main(int argc, char** argv) {
 
   const char* ip        = "10.0.2.102";
   unsigned short port   = 8192;
-  unsigned linkEnable   = (1 << NDSLinks) - 1;
-  unsigned linkLoopback = 0;
+  unsigned linkEnables  = (1 << NDSLinks) - 1;
+  bool     linkLoopback = false;
   unsigned duration     = 5;            // Seconds
   int skewSteps=0;
   bool lreset=false;
@@ -91,13 +95,16 @@ int main(int argc, char** argv) {
   int  freqSel=-1;
   int  bwSel=-1;
 
-  while ( (c=getopt( argc, argv, "a:L:l:s:f:S:d:DRbrh")) != EOF ) {
+  while ( (c=getopt( argc, argv, "a:p:L:ls:f:S:d:DRbrh")) != EOF ) {
     switch(c) {
     case 'a':
       ip = optarg; break;
       break;
+    case 'p':
+      port = strtoul(optarg,NULL,0);
+      break;
     case 'L':
-      linkEnable = strtoul(optarg,NULL,0);
+      linkEnables = strtoul(optarg,NULL,0);
       break;
     case 'R':
       lreset = true;
@@ -118,7 +125,7 @@ int main(int argc, char** argv) {
       skewSteps = atoi(optarg);
       break;
     case 'l':
-      linkLoopback = strtoul(optarg,NULL,0);
+      linkLoopback = true;
       break;
     case 'd':
       duration = strtoul(optarg,NULL,0);
@@ -192,16 +199,16 @@ int main(int argc, char** argv) {
   unsigned links = (1 << NDSLinks) - 1;
   for(unsigned i=0; links; i++)
     if (links&(1<<i)) {
-      m->linkLoopback(i,(linkLoopback&(1<<i))!=0);
+      m->linkLoopback(remap[i],(linkEnables & (1<<i)) && linkLoopback);
       links &= ~(1<<i);
     }
 
   if (lreset) {
-    unsigned linkReset=linkEnable;
+    unsigned linkReset=linkEnables;
     for(unsigned i=0; linkReset; i++)
       if (linkReset&(1<<i)) {
-        m->txLinkReset(i);
-        m->rxLinkReset(i);
+        m->txLinkReset(remap[i]);
+        m->rxLinkReset(remap[i]);
         usleep(10000);
         linkReset &= ~(1<<i);
       }
@@ -210,18 +217,18 @@ int main(int argc, char** argv) {
   m->setL0Enabled(false);
 
   m->clearLinks();
-  links = linkEnable;
+  links = linkEnables;
   for(unsigned i=0; links; i++)
     if (links&(1<<i)) {
-      m->linkEnable(i,true);
+      m->linkEnable(remap[i],true);
       links &= ~(1<<i);
     }
 
   m->init();
-  links = linkEnable;
+  links = linkEnables;
   for(unsigned i=0; links; i++)
     if (links&(1<<i)) {
-      printf("rx/tx Status: %u: %08x/%08x\n", i, m->rxLinkStat(i), m->txLinkStat(i));
+      printf("rx/tx Status: %u: %08x/%08x\n", i, m->rxLinkStat(remap[i]), m->txLinkStat(remap[i]));
       links &= ~(1<<i);
     }
 
@@ -229,7 +236,7 @@ int main(int argc, char** argv) {
 
   LinkResults lr;
   memset(&lr, 0, sizeof(lr));
-  lr.linkEnables = linkEnable;
+  lr.linkEnables = linkEnables;
   lr.duration    = duration;
 
   //
@@ -246,12 +253,12 @@ int main(int argc, char** argv) {
   {
     lr.count = count++;
 
-    unsigned links = linkEnable;
+    unsigned links = linkEnables;
     for (unsigned i = 0; links; i++)
     {
       if (links&(1<<i))
       {
-        m->setLink(i);
+        m->setLink(remap[i]);
         unsigned e0 = m->_dsLinkStatus;
         usleep(350);      // In 350 uS, the 186 MHz clock will count ~64K times
         unsigned e1 = m->_dsLinkStatus;
@@ -267,6 +274,7 @@ int main(int argc, char** argv) {
 
   void* retVal;
   pthread_join(tid, &retVal);
+  sleep(1);                             // Wait for cpsw threads to exit
 
   return 0;
 }
@@ -303,8 +311,6 @@ void* handle_results(void* arg)
 
     if (lr->duration && (count == lr->duration))  break;
   }
-
-  print(lr->linkEnables, count, rxErrs, cntN - cnt0);
 
   lr->done = true;
 
