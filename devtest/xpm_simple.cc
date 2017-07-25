@@ -19,9 +19,12 @@
 
 #include "pds/cphw/Reg.hh"
 #include "pds/cphw/Reg64.hh"
+#include "pds/cphw/AmcTiming.hh"
 
 using Pds::Cphw::Reg;
 using Pds::Cphw::Reg64;
+using Pds::Cphw::AmcTiming;
+using Pds::Cphw::XBar;
 
 extern int optind;
 
@@ -33,7 +36,9 @@ void usage(const char* p) {
 
 class Xpm {
 private:
-  uint32_t _reserved[0x80000000>>2];
+  AmcTiming _timing;
+  uint32_t  _reserved[(0x80000000-sizeof(AmcTiming))>>2];
+  //  uint32_t _reserved[0x80000000>>2];
   Reg      _paddr;
   Reg      _index; // [3:0]=partn, [9:4]=link, [15:10]=linkDbg, [19:16]=amc
 
@@ -78,7 +83,7 @@ private:
       _control1 = 0x80010000;
     }
     void stop() {
-      _control1 = 1;
+      _control1 = 0;
     }
   } _partitionL0Config;
   
@@ -99,9 +104,19 @@ private:
 public:
   Xpm() {}
   void start(unsigned rate, bool lEnableDTI) {
+    //  Drive backplane
+    _timing.xbar.setOut( XBar::BP, XBar::FPGA );
+
     // Configure dslink
-    _index = (5<<4);
+    _index = (5<<4);  // FP to RTM
+    _linkConfig.setup(false);
+
+    _index = (16<<4);  // BP broadcast
+    _linkConfig.setup(true);
+
+    _index = (17<<4);  // BP channel 1
     _linkConfig.setup(lEnableDTI);
+
     // Setup partition
     _partitionL0Config.start(rate);
   }
@@ -132,12 +147,50 @@ public:
       FILL(i);
 #undef FILL
   }
+  void bpRecvs(uint32_t* v,
+               uint32_t* dv) {
+    for(unsigned i=0; i<16; i++) {
+      _index = (16+i)<<4;
+      unsigned q; bool b0,b1,b2;
+      _linkStatus.status(b0,b1,b2,q);
+      dv[i] = v[i] - q;
+      v[i] = q;
+    }
+  }
 };
 
+static void process(Xpm& xpm)
+{
+  static uint64_t stats[5], dstats[5];
+  static const char* title[] = { "enabled   ",
+                                 "inhibited ",
+                                 "ninput    ",
+                                 "ninhibited",
+                                 "naccepted " };
+  static uint32_t inh[32], dinh[32];
+  static uint32_t rcv[16], drcv[16];
+
+  xpm.stats(stats,dstats);
+  for(unsigned i=0; i<5; i++)
+    printf("%s: %016llu [%010llu]\n", title[i], stats[i], dstats[i]);
+
+  xpm.inhibits(inh,dinh);
+  for(unsigned i=0; i<32; i++)
+    printf("%09u [%09u]%s", inh[i], dinh[i], (i&3)==3 ? "\n":"  ");
+
+  xpm.bpRecvs(rcv,drcv);
+  for(unsigned i=0; i<7; i++) {
+    printf("  %06u [%06u] (%04x)", rcv[i], drcv[i], rcv[i+8]);
+  }
+
+  printf("\n----\n");
+}
 
 void sigHandler( int signal ) {
   Xpm* xpm = new (0)Xpm;
   xpm->stop();
+  printf("\n====\n");
+  process(*xpm);
   ::exit(signal);
 }
 
@@ -168,27 +221,9 @@ int main(int argc, char** argv) {
   Xpm* xpm = new (0)Xpm;
   xpm->start(fixed_rate, lEnableDTI);
 
-  uint64_t stats[5], dstats[5];
-  memset(stats, 0, sizeof(stats));
-  static const char* title[] = { "enabled   ",
-                                 "inhibited ",
-                                 "ninput    ",
-                                 "ninhibited",
-                                 "naccepted " };
-  uint32_t inh[32], dinh[32];
-  memset(inh, 0, sizeof(inh));
-
   while(1) {
     sleep(1);
-    xpm->stats(stats,dstats);
-    for(unsigned i=0; i<5; i++)
-      printf("%s: %016llu [%010llu]\n", title[i], stats[i], dstats[i]);
-
-    xpm->inhibits(inh,dinh);
-    for(unsigned i=0; i<32; i++)
-      printf("%09u [%09u]%s", inh[i], dinh[i], (i&3)==3 ? "\n":"  ");
-
-    printf("----\n");
+    process(*xpm);
   }
 
   return 0;

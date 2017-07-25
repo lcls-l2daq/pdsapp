@@ -161,7 +161,7 @@ tgtincs_netlink :=
 libnames :=
 #tgtnames := tasktest xcasttest quadadc quadadc_dma amctiming
 #tgtnames := tasktest xcasttest quadadc quadadc_dma quadadc_mon quadadc_cal amctiming amcmonitor tprca
-tgtnames := tasktest xcasttest amctiming amcmonitor tprca xpm_simple dti_simple xpm_links
+tgtnames := tasktest xcasttest amctiming amcmonitor tprca xpm_simple dti_simple dtireg dti_links xpm_links
 
 tgtsrcs_tasktest := tasktest.cc
 tgtlibs_tasktest := pds/service pdsdata/xtcdata
@@ -279,6 +279,14 @@ tgtslib_dtimon := rt pthread
 
 #tgtnames := dtimon
 
+tgtsrcs_dtireg := dtireg.cc
+tgtincs_dtireg := cpsw/include cpsw_boost/include yaml/include
+tgtincs_dtireg += epics/include epics/include/os/Linux
+tgtlibs_dtireg := pds/cphw cpsw/cpsw yaml/yaml-cpp
+tgtlibs_dtireg += pds/epicstools epics/ca epics/Com
+tgtslib_dtireg := rt pthread
+
+
 tgtsrcs_dtiprbs := dtiprbs.cc
 tgtincs_dtiprbs := cpsw/include cpsw_boost/include yaml/include
 tgtincs_dtiprbs += epics/include epics/include/os/Linux
@@ -322,6 +330,13 @@ tgtlibs_dti_simple := pds/cphw cpsw/cpsw yaml/yaml-cpp
 tgtslib_dti_simple := rt dl
 
 #tgtnames := dti_simple
+
+tgtsrcs_dti_links := dti_links.cc
+tgtincs_dti_links := cpsw/include cpsw_boost/include yaml/include
+tgtlibs_dti_links := pds/cphw cpsw/cpsw yaml/yaml-cpp
+tgtslib_dti_links := rt dl
+
+#tgtnames := dti_links
 
 tgtsrcs_xpm_links := xpm_links.cc
 tgtincs_xpm_links := cpsw/include cpsw_boost/include yaml/include

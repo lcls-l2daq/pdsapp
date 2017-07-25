@@ -23,8 +23,6 @@
 #include "pds/cphw/RingBuffer.hh"
 #include "pds/cphw/XBar.hh"
 
-//#define NO_DSPGP
-
 using Pds::Cphw::Reg;
 using Pds::Cphw::Reg64;
 using Pds::Cphw::AmcTiming;
@@ -127,79 +125,28 @@ public:
     //  XPM connected through RTM
     _timing.xbar.setOut( XBar::RTM0, XBar::FPGA );
     _timing.xbar.setOut( XBar::FPGA, lRTM ? XBar::RTM0 : XBar::BP );
-
-    _qpll_bpUpdate = 100<<16;
-
-    _linkIdx = 1<<30;
-    _pgp[0]._countReset = 1;
-#ifndef NO_DSPGP
-    _pgp[1]._countReset = 1;
-#endif
-    _usLink[0].enable(0x1, 0);
-
-    _pgp[0]._countReset = 0;
-#ifndef NO_DSPGP
-    _pgp[1]._countReset = 0;
-#endif
-    _linkIdx = 1<<31;
-
-    dumpb();
+    _linkIdx = (1<<30);
+    usleep(1);
+    _linkIdx = (1<<31);
   }
-  void stop()
-  {
-    _usLink[0].enable(0, 0);
-  }
-  void stats(uint32_t* v,
-             uint32_t* dv) {
-#define UFILL(s) {     \
-      uint32_t q = _usLinkStatus.s; \
-      *dv++ = q - *v; \
-      *v++  = q; }
-    UFILL(_rxErrs);
-    UFILL(_rxFull);
-    UFILL(_ibRecv);
-    UFILL(_ibEvt);
-#define DFILL(s) {     \
-      uint32_t q = _dsLinkStatus.s; \
-      *dv++ = q - *v; \
-      *v++  = q; }
-    DFILL(_rxErrs);
-    DFILL(_rxFull);
-    DFILL(_obSent);
-#ifndef NO_DSPGP
-#define PFILL(s) {          \
-      uint32_t q = _pgp[0].s; \
-      *dv++ = q - *v;         \
-      *v++  = q;              \
-      q = _pgp[1].s;          \
-      *dv++ = q - *v;         \
-      *v++  = q; }
-#else
-#define PFILL(s) {          \
-      uint32_t q = _pgp[0].s; \
-      *dv++ = q - *v;         \
-      *v++  = q;              \
-      *dv++ = 0; v++; }
-#endif
-    PFILL(_rxFrames);
-    PFILL(_rxFrameErrs);
-    PFILL(_txFrames);
-    PFILL(_txFrameErrs);
-    PFILL(_rxOpcodes);
-    PFILL(_txOpcodes);
-#define FILL(s) {               \
-      uint32_t q = s;           \
-      *dv++ = q - *v;           \
-      *v++  = q; }
-    FILL(_bpLinkSent);
-
-    printf("linkUp   : %08x\n",unsigned(_linkUp));
+  void linkStats(uint32_t* v,
+                 uint32_t* dv) {
+    for(unsigned i=0; i<7; i++) {
+      _linkIdx = (i<<0) | (1<<31);
+      uint32_t q = _usLinkStatus._rxErrs;
+      *dv++ = q - *v;
+      *v++  = q; 
+    }
+    for(unsigned i=0; i<7; i++) {
+      _linkIdx = (i<<16) | (1<<31);
+      uint32_t q = _dsLinkStatus._rxErrs;
+      *dv++ = q - *v;
+      *v++  = q; 
+    }
   }
 };
 
 void sigHandler( int signal ) {
-  Dti* m = new((void*)0) Dti;
-  m->stop();
   ::exit(signal);
 }
 
@@ -228,36 +175,21 @@ int main(int argc, char** argv) {
   Dti* dti = new (0)Dti;
   dti->start(lRTM);
 
-  uint32_t stats[20], dstats[20];
-  memset(stats, 0, sizeof(stats));
-  static const char* title[] = 
-    { "usRxErrs   ",
-      "usRxFull   ",
-      "usIbRecv   ",
-      "usIbEvt    ",
-      "dsRxErrs   ",
-      "dsRxFull   ",
-      "dsObSent   ",
-      "usRxFrames ",
-      "dsRxFrames ",
-      "usRxFrErrs ",
-      "dsRxFrErrs ",
-      "usTxFrames ",
-      "dsTxFrames ",
-      "usTxFrErrs ",
-      "dsTxFrErrs ",
-      "usRxOpcodes",
-      "dsRxOpcodes",
-      "usTxOpcodes",
-      "dsTxOpcodes",
-      "bpLinkSent " };
+  unsigned  v[14];
+  unsigned dv[14];
+  memset(v, 0, sizeof(v));
+
+  dti->linkStats(v,dv);
+  for(unsigned j=0; j<14; j++)
+    printf("%08x:",v[j]>>24);
+  printf("\n");
 
   while(1) {
-    sleep(1);
-    dti->stats(stats,dstats);
-    for(unsigned i=0; i<20; i++)
-      printf("%s: %010u [%010u]\n", title[i], stats[i], dstats[i]);
-    printf("----\n");
+    usleep(1000000);
+    dti->linkStats(v,dv);
+    for(unsigned j=0; j<14; j++)
+      printf("%08u:",dv[j]&0xffff);
+    printf("\n");
   }
 
   return 0;
