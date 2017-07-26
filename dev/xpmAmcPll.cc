@@ -16,10 +16,7 @@
 
 #include <string>
 
-enum { NDSLinks = 7 };                  // Revisit: Needs to go to 14, but not yet sure how channels are numbered
-
-static const unsigned remap[] = { 2, 3, 4, 5, 0, 1, 6, 7 }; // Compensate according to sheet 6 of the schematic
-
+enum { NDSLinks = 14 };
 
 extern int optind;
 
@@ -41,7 +38,7 @@ static void* handle_results(void*);
 void usage(const char* p) {
   printf("Usage: %s [options]\n",p);
   printf("Options: -a <IP addr (dotted notation)> : Use network <IP>\n");
-  printf("         -p <port>                      : Use netowrk <port>\n");
+  printf("         -p <port>                      : Use network <port>\n");
   printf("         -L <ds link mask>              : Enable selected link(s)\n");
   printf("         -R                             : Reset selected link(s)\n");
   printf("         -l                             : Put selected link(s) in loopback mode\n");
@@ -63,13 +60,13 @@ void print(unsigned linkEnables, unsigned count, unsigned errs[2][NDSLinks], uns
   unsigned prv = cnt++ & 1;
   unsigned cur = cnt++ & 1;
 
-  printf("second: %5u, dCnt = %u, dRxErrs = ", count, dCnt);
+  printf("second: %u, dCnt: %u, dRxErrs:", count, dCnt);
   for (unsigned i = 0; linkEnables; i++)
   {
     if (linkEnables&(1<<i))
     {
       unsigned diff = errs[cur][i] - errs[prv][i];
-      printf("%u: %f  ", i, (double)diff / (double)dCnt);
+      printf("  %u: %7.1f", i, (double)diff / (double)dCnt);
       linkEnables &= ~(1 << i);
     }
   }
@@ -199,7 +196,7 @@ int main(int argc, char** argv) {
   unsigned links = (1 << NDSLinks) - 1;
   for(unsigned i=0; links; i++)
     if (links&(1<<i)) {
-      m->linkLoopback(remap[i],(linkEnables & (1<<i)) && linkLoopback);
+      m->linkLoopback(i,(linkEnables & (1<<i)) && linkLoopback);
       links &= ~(1<<i);
     }
 
@@ -207,8 +204,8 @@ int main(int argc, char** argv) {
     unsigned linkReset=linkEnables;
     for(unsigned i=0; linkReset; i++)
       if (linkReset&(1<<i)) {
-        m->txLinkReset(remap[i]);
-        m->rxLinkReset(remap[i]);
+        m->txLinkReset(i);
+        m->rxLinkReset(i);
         usleep(10000);
         linkReset &= ~(1<<i);
       }
@@ -220,17 +217,20 @@ int main(int argc, char** argv) {
   links = linkEnables;
   for(unsigned i=0; links; i++)
     if (links&(1<<i)) {
-      m->linkEnable(remap[i],true);
+      m->linkEnable(i,true);
       links &= ~(1<<i);
     }
 
   m->init();
+
   links = linkEnables;
+  printf("rx/tx Status:");
   for(unsigned i=0; links; i++)
     if (links&(1<<i)) {
-      printf("rx/tx Status: %u: %08x/%08x\n", i, m->rxLinkStat(remap[i]), m->txLinkStat(remap[i]));
+      printf(" %2u: %d/%d", i, m->rxLinkStat(i), m->txLinkStat(i));
       links &= ~(1<<i);
     }
+  printf("\n");
 
   ::signal( SIGINT, sigHandler );
 
@@ -258,7 +258,7 @@ int main(int argc, char** argv) {
     {
       if (links&(1<<i))
       {
-        m->setLink(remap[i]);
+        m->setLink(i);
         unsigned e0 = m->_dsLinkStatus;
         usleep(350);      // In 350 uS, the 186 MHz clock will count ~64K times
         unsigned e1 = m->_dsLinkStatus;
@@ -307,7 +307,7 @@ void* handle_results(void* arg)
     }
 
     if (changed & !done)  print(lr->linkEnables, count, rxErrs, cntN - cnt0);
-    else                { printf("second: %5u\r", count); fflush(stdout); }
+    else                { printf("second: %u\r", count); fflush(stdout); }
 
     if (lr->duration && (count == lr->duration))  break;
   }

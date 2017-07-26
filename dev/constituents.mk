@@ -318,6 +318,7 @@ endif
 tgtnames += evr
 tgtnames += xpmtest
 tgtnames += xpmAmcPll
+tgtnames += hsrConfig
 
 commonlibs += offlinedb/mysqlclient offlinedb/offlinedb pds/offlineclient
 commonlibs += pdsdata/indexdata pdsdata/smalldata
@@ -405,6 +406,10 @@ tgtslib_xpmerr := dl pthread rt
 tgtsrcs_xpmAmcPll := xpmAmcPll.cc
 tgtlibs_xpmAmcPll := pds/xpmbase pds/cphw cpsw/cpsw yaml/yaml-cpp
 tgtslib_xpmAmcPll := dl pthread rt
+
+tgtsrcs_hsrConfig := hsrConfig.cc
+tgtlibs_hsrConfig := pds/xpmbase pds/dtibase pds/cphw cpsw/cpsw yaml/yaml-cpp
+tgtslib_hsrConfig := dl pthread rt
 
 tgtsrcs_simapp := simapp.cc
 tgtincs_simapp := pdsdata/include
