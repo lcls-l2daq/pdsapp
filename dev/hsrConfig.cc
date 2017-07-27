@@ -104,7 +104,7 @@ int main(int argc, char** argv)
       isXpm = true;
       break;
     case 'L':
-      linkEnables = strtoul(optarg,NULL,0);
+      linkEnables = strtoul(optarg,NULL,0) & ((1 << NLinks) - 1);
       break;
     case 'D':
       dem = strtoul(optarg,NULL,0);
@@ -170,12 +170,12 @@ int main(int argc, char** argv)
 
   Xpm::Module* xpm = Xpm::Module::module();
   Dti::Module* dti = Dti::Module::module();
-  HsRepeater*  hsr =isXpm ? Xpm::Module::hsRepeater()
-                          : Dti::Module::hsRepeater();
+  HsRepeater*  hsr = isXpm ? Xpm::Module::hsRepeater()
+                           : Dti::Module::hsRepeater();
 
   if (rstLinks)
   {
-    unsigned links = linkEnables & ((1 << NLinks) - 1);
+    unsigned links = linkEnables;
     for(unsigned i = 0; links; ++i)
     {
       if (links & (1<<i))
@@ -197,7 +197,7 @@ int main(int argc, char** argv)
 
   if (dem >= 0)
   {
-    unsigned links = linkEnables & ((1 << NLinks) - 1);
+    unsigned links = linkEnables;
     for (unsigned i = 0; links; ++i)
     {
       if (links & (1<<i))
@@ -215,7 +215,7 @@ int main(int argc, char** argv)
 
   if (vod >= 0)
   {
-    unsigned links = linkEnables & ((1 << NLinks) - 1);
+    unsigned links = linkEnables;
     for (unsigned i = 0; links; ++i)
     {
       if (links & (1<<i))
@@ -233,7 +233,7 @@ int main(int argc, char** argv)
 
   if (eqv >= 0)
   {
-    unsigned links = linkEnables & ((1 << NLinks) - 1);
+    unsigned links = linkEnables;
     for (unsigned i = 0; links; ++i)
     {
       if (links & (1<<i))
@@ -251,7 +251,7 @@ int main(int argc, char** argv)
 
   if (rstRegs)
   {
-    unsigned links = linkEnables & ((1 << NLinks) - 1);
+    unsigned links = linkEnables;
     for (unsigned i = 0; links; ++i)
     {
       if (links & (1<<i))
@@ -264,7 +264,7 @@ int main(int argc, char** argv)
 
   if (rstSMBus)
   {
-    unsigned links = linkEnables & ((1 << NLinks) - 1);
+    unsigned links = linkEnables;
     for (unsigned i = 0; links; ++i)
     {
       if (links & (1<<i))
@@ -279,7 +279,7 @@ int main(int argc, char** argv)
   {
     xpm->setL0Enabled(false);
     xpm->clearLinks();
-    unsigned links = linkEnables & ((1 << NLinks) - 1);
+    unsigned links = linkEnables;
     for (unsigned i = 0; links; ++i)
     {
       if (links & (1<<i))
@@ -299,22 +299,36 @@ int main(int argc, char** argv)
 
   if (scan && !isXpm)                   // DTI case
   {
-    unsigned links = linkEnables & ((1 << NLinks) - 1);
+    printf("Up links: %08x\n", unsigned(dti->_linkUp));
+
+    unsigned links = linkEnables;
     for (unsigned i = 0; links; ++i)
     {
       unsigned nDsLinks = Dti::Module::NDsLinks; // Might eventually be read from a register
+      unsigned nUsLinks = Dti::Module::NUsLinks; // Might eventually be read from a register
       if (links & (1<<i))
       {
-        if (i <= nDsLinks)
+        if (i < nDsLinks)
+        {
           dti->dsLink(i);
+          // no enable?
+        }
         else
+        {
           dti->usLink(i - nDsLinks);
+          dti->_usLink[nUsLinks - 1 - (i - nDsLinks)].enable(true);
+        }
 
         printf("DTI link %2d: ", i);     // No \n on purpose
         Cphw::Reg* rxErrs = i < nDsLinks ? &dti->_dsRxErrs : &dti->_usRxErrs;
         unsigned   idx    = hsr[hsrMap[i]].scanLink(chnMap[i], dtiMeasFn, rxErrs);
         if (idx > 16)  printf("No error-free zone found\n");
         else           printf("An error-free zone found centered at EQ index = %d\n", idx);
+
+        if (i < nDsLinks)
+          ; // no enable?
+        else
+          dti->_usLink[nUsLinks - 1 - (i - nDsLinks)].enable(false);
 
         links &= ~(1<<i);
       }
@@ -324,7 +338,7 @@ int main(int argc, char** argv)
   if (dump)
   {
     unsigned unit  = -1;
-    unsigned links = linkEnables & ((1 << NLinks) - 1);
+    unsigned links = linkEnables;
     for (unsigned i = 0; links; ++i)
     {
       if (links & (1<<i))
