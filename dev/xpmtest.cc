@@ -75,7 +75,7 @@ int main(int argc, char** argv) {
 
   Pds::Cphw::Reg::set(ip, port, 0);
 
-  Module* m = new((void*)0x80000000) Module;
+  Module* m = Module::locate();
 
 #ifdef USE_STREAM
   NetIODev  root = INetIODev::create("fpga", ip);

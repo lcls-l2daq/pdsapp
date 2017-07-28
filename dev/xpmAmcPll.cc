@@ -141,8 +141,12 @@ int main(int argc, char** argv) {
 
   Pds::Cphw::Reg::set(ip, port, 0);
 
-  Pds::Cphw::AmcTiming* t = new((void*)0) Pds::Cphw::AmcTiming;
+  Module* xpm = Module::locate();
+
+  Pds::Cphw::AmcTiming* t = &xpm->_timing;
   printf("buildStamp %s\n",t->version.buildStamp().c_str());
+  if (!strcasestr(t->version.buildStamp().c_str(), "XPM"))
+    printf("*** WARNING *** Module does not appear to be an XPM!\n");
 
   t->resetStats();
   usleep(1000);
@@ -159,7 +163,7 @@ int main(int argc, char** argv) {
     exit(1);
   }
 
-  Module* m = new((void*)0x80000000) Module;
+  Module* m = Module::locate();
 
   m->dumpPll();
 
@@ -223,14 +227,8 @@ int main(int argc, char** argv) {
 
   m->init();
 
-  links = linkEnables;
-  printf("rx/tx Status:");
-  for(unsigned i=0; links; i++)
-    if (links&(1<<i)) {
-      printf(" %2u: %d/%d", i, m->rxLinkStat(i), m->txLinkStat(i));
-      links &= ~(1<<i);
-    }
-  printf("\n");
+  printf("rx/tx Status: %08x/%08x\n",
+         m->rxLinkStat(), m->txLinkStat());
 
   ::signal( SIGINT, sigHandler );
 

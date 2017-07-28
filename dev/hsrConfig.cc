@@ -46,7 +46,7 @@ unsigned dtiMeasFn(void* arg)
   unsigned e0 = *rxErrs;
   usleep(350);      // In 350 uS, the 186 MHz clock will count ~64K times
   unsigned e1 = *rxErrs;
-  return (((e1 & 0x0000ffff) - (e0 & 0x0000ffff)) + 0x10000) & 0x0000ffff;
+  return (((e1 & 0x00ffffff) - (e0 & 0x00ffffff)) + 0x1000000) & 0x00ffffff;
 }
 
 
@@ -150,8 +150,16 @@ int main(int argc, char** argv)
 
   Pds::Cphw::Reg::set(ip, port, 0);
 
-  Pds::Cphw::AmcTiming* t = new((void*)0) Pds::Cphw::AmcTiming;
+  Xpm::Module* xpm = Xpm::Module::locate();
+  Dti::Module* dti = Dti::Module::locate();
+
+  Pds::Cphw::AmcTiming* t = isXpm ? &xpm->_timing
+                                  : &dti->_timing;
   printf("buildStamp %s\n",t->version.buildStamp().c_str());
+  if ( isXpm && !strcasestr(t->version.buildStamp().c_str(), "XPM"))
+    printf("*** WARNING *** Module does not appear to be an XPM!\n");
+  if (!isXpm && !strcasestr(t->version.buildStamp().c_str(), "DTI"))
+    printf("*** WARNING *** Module does not appear to be a DTI!\n");
 
   t->resetStats();
   usleep(1000);
@@ -168,10 +176,13 @@ int main(int argc, char** argv)
     exit(1);
   }
 
-  Xpm::Module* xpm = Xpm::Module::module();
-  Dti::Module* dti = Dti::Module::module();
-  HsRepeater*  hsr = isXpm ? Xpm::Module::hsRepeater()
-                           : Dti::Module::hsRepeater();
+  if (isXpm)
+    xpm->init();
+  else
+    dti->init();
+
+  HsRepeater*  hsr = isXpm ? xpm->_hsRepeater
+                           : dti->_hsRepeater;
 
   if (rstLinks)
   {
@@ -299,8 +310,6 @@ int main(int argc, char** argv)
 
   if (scan && !isXpm)                   // DTI case
   {
-    printf("Up links: %08x\n", unsigned(dti->_linkUp));
-
     unsigned links = linkEnables;
     for (unsigned i = 0; links; ++i)
     {
@@ -316,11 +325,11 @@ int main(int argc, char** argv)
         else
         {
           dti->usLink(i - nDsLinks);
-          dti->_usLink[nUsLinks - 1 - (i - nDsLinks)].enable(true);
+          dti->_usLinkConfig[nUsLinks - 1 - (i - nDsLinks)].enable(true);
         }
 
         printf("DTI link %2d: ", i);     // No \n on purpose
-        Cphw::Reg* rxErrs = i < nDsLinks ? &dti->_dsRxErrs : &dti->_usRxErrs;
+        Cphw::Reg* rxErrs = i < nDsLinks ? &dti->_dsStatus._rxErrs : &dti->_usStatus._rxErrs;
         unsigned   idx    = hsr[hsrMap[i]].scanLink(chnMap[i], dtiMeasFn, rxErrs);
         if (idx > 16)  printf("No error-free zone found\n");
         else           printf("An error-free zone found centered at EQ index = %d\n", idx);
@@ -328,7 +337,7 @@ int main(int argc, char** argv)
         if (i < nDsLinks)
           ; // no enable?
         else
-          dti->_usLink[nUsLinks - 1 - (i - nDsLinks)].enable(false);
+          dti->_usLinkConfig[nUsLinks - 1 - (i - nDsLinks)].enable(false);
 
         links &= ~(1<<i);
       }

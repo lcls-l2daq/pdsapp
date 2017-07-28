@@ -32,7 +32,7 @@ void usage(const char* p) {
 }
 
 void sigHandler( int signal ) {
-  Module* m = new(0) Module;
+  Module* m = Module::locate();
   m->setL0Enabled(false);
   ::exit(signal);
 }
@@ -74,17 +74,17 @@ int main(int argc, char** argv) {
 
   Pds::Cphw::Reg::set(ip, port, 0x80000000);
 
-  Module* m = new(0) Module;
+  Module* m = Module::locate();
 
   while(1) {
-    unsigned rx = m->rxLinkStat(linkEnable);
-    unsigned tx = m->txLinkStat(linkEnable);
+    unsigned rx = m->rxLinkStat();
+    unsigned tx = m->txLinkStat();
     printf("rx/tx Status: %08x/%08x \t %c %c %04x %c\n",
            rx,tx,
-           ((rx>>31)&1)?'.':'+',
-           ((rx>>30)&1)?'.':'+',
-           ((rx>>16)&0x3fff),
-           ((rx>>0)&1)?'.':'+');
+           ((rx>>31)&1)?'.':'+',  // Revisit: These are now meaningless
+           ((rx>>30)&1)?'.':'+',  // Revisit: These are now meaningless
+           ((rx>>16)&0x3fff),     // Revisit: These are now meaningless
+           ((rx>>0)&1)?'.':'+');  // Revisit: These are now meaningless
     usleep(100000);
   }
 

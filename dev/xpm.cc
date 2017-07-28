@@ -42,8 +42,7 @@ void usage(const char* p) {
 }
 
 void sigHandler( int signal ) {
-  Module* m = new((void*)0x80000000) Module;
-  m->setL0Enabled(false);
+  Module::locate()->setL0Enabled(false);
   ::exit(signal);
 }
 
@@ -118,12 +117,12 @@ int main(int argc, char** argv) {
 
   Pds::Cphw::Reg::set(ip, port, 0);
 
-  { Pds::Cphw::AxiVersion* vsn = new((void*)0) Pds::Cphw::AxiVersion;
-    printf("buildStamp %s\n",vsn->buildStamp().c_str()); }
-
-  Module*         m = new((void*)0x80000000) Module;
+  Module*         m = Module::locate();
   //  ClockControl*  cc = new((void*)0x81000000) ClockControl;
   //  JitterCleaner* jc = new((void*)0x05000000) JitterCleaner;
+
+ { Pds::Cphw::AxiVersion* vsn = &m->_timing.version;
+    printf("buildStamp %s\n",vsn->buildStamp().c_str()); }
 
   if (linkLoopback != 0x80000000)
     for(unsigned i=0; i<14; i++)
@@ -253,12 +252,8 @@ int main(int argc, char** argv) {
   m->setL0Enabled(true);
 
   m->init();
-  links = linkEnable;
-  for(unsigned i=0; links; i++)
-    if (links&(1<<i)) {
-      printf("rx/tx Status: %08x/%08x\n", m->rxLinkStat(i), m->txLinkStat(i));
-      links &= ~(1<<i);
-    }
+  printf("rx/tx Status: %08x/%08x\n",
+         m->rxLinkStat(), m->txLinkStat());
 
   ::signal( SIGINT, sigHandler );
 
@@ -319,7 +314,7 @@ void* handle_req(void* arg)
   }
 
   char request[32];
-  Module* m = new((void*)0x80000000) Module;
+  Module* m = Module::locate();
 
   m->_analysisRst = 0xffff;
   m->_analysisRst = 0;

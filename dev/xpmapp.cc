@@ -105,13 +105,14 @@ int main(int argc, char** argv) {
   printf("Using %s\n",Pds::DetInfo::name(info));
 
   Pds::Cphw::Reg::set(xpm_ip, 8192, 0);
-  { Pds::Cphw::AmcTiming* t = new ((void*)0) Pds::Cphw::AmcTiming;
+
+  Module* m = Module::locate();
+  { Pds::Cphw::AmcTiming* t = &m->_timing;
     t->xbar.outMap[0] = 1;
     t->xbar.outMap[1] = 1;
     t->xbar.outMap[2] = 1;
     t->xbar.outMap[3] = 1; }
 
-  Module* m = new((void*)0x80000000) Module;
   m->setL0Enabled(false);
   if (fixedRate>=0)
     m->setL0Select_FixedRate(fixedRate);
