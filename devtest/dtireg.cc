@@ -81,8 +81,6 @@ int main(int argc, char** argv) {
   int v;
 
   bool lWrite = optind < argc-1;
-  printf("lWrite %c  optind %u  argc %u\n",
-         lWrite?'T':'F', optind, argc);
 
   {
     CAxisFrameHeader hdr;
@@ -93,7 +91,7 @@ int main(int argc, char** argv) {
     if (lWrite) {
       bb[0] = strtoul(argv[optind++],NULL,0);
       bb[1] = strtoul(argv[optind++],NULL,0);
-      printf("Write %u  %08x:%08x\n",
+      printf("Frame %u: Write reg[%u]=0x%08x\n",
              hdr.getFrameNo(),
              bb[0],
              bb[1]);
@@ -102,15 +100,12 @@ int main(int argc, char** argv) {
     }
     else {
       bb[0] = strtoul(argv[optind++],NULL,0);
-      printf("Write %u  %08x\n",
+      printf("Frame %u: Read reg[%u]\n",
              hdr.getFrameNo(),
              bb[0]);
       strm->write( (uint8_t*)buf, sz);
     }
   }
-
-  timespec tvo;
-  clock_gettime(CLOCK_REALTIME,&tvo);
 
   while ((v=strm->read( buf, sizeof(buf), tmo, 0 ))>=0) {
 
@@ -122,12 +117,13 @@ int main(int argc, char** argv) {
         continue;
       }
 
-      timespec tv;
-      clock_gettime(CLOCK_REALTIME,&tv);
-      
-      double dt = double(tv.tv_sec-tvo.tv_sec)+1.e-9*(double(tv.tv_nsec)-double(tvo.tv_nsec));
-      tvo=tv;
-      printf("Frame %u  %08x  %f\n",hdr.getFrameNo(),*reinterpret_cast<uint32_t*>(&buf[hdr.getSize()]),dt);
+      printf("Frame %u:",hdr.getFrameNo());
+      const uint32_t* p = reinterpret_cast<uint32_t*>(&buf[hdr.getSize()]);
+      v -= hdr.getSize();
+      v >>= 2;
+      for(unsigned i=0; i<v; i++)
+        printf(" %08x", p[i]);
+      printf("\n");
       break;
     }
     else {

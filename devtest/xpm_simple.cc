@@ -104,12 +104,21 @@ private:
     Reg64 _nacceptedl1;
   } _partitionStatus;
 
-  Reg _reserved1[(144-76)>>2];
+  Reg _reserved1[(108-76)>>2];
+
+  Reg _msgHeader;
+  Reg _msgPayload;
+
+  Reg _reserved1b[(144-116)>>2];
 
   Reg _partitionSrcInhibits[32];
 
 public:
   Xpm() {}
+  void message(unsigned header, unsigned payload) {
+    _msgPayload = payload;
+    _msgHeader  = header&0x7fff | (1<<15); // must be last
+  }
   void start(unsigned rate, bool lEnableDTI) {
     //  Drive backplane
     _timing.xbar.setOut( XBar::BP, XBar::FPGA );
@@ -213,11 +222,13 @@ int main(int argc, char** argv) {
   const char* ip  = "10.0.1.102";
   unsigned fixed_rate = 6;
   bool lEnableDTI=false;
+  uint64_t msg=0;
 
-  while ( (c=getopt( argc, argv, "a:er:t:kh")) != EOF ) {
+  while ( (c=getopt( argc, argv, "a:em:r:t:kh")) != EOF ) {
     switch(c) {
     case 'a': ip = optarg; break;
     case 'e': lEnableDTI=true; break;
+    case 'm': msg = strtoull(optarg,NULL,0); msg |= 1ULL<<48; break;
     case 'r': fixed_rate = strtoul(optarg,NULL,0); break;
     case 't': _partn = strtoul(optarg, NULL, 0); break;
     case 'k': _keepRunning = true; break;
@@ -230,6 +241,9 @@ int main(int argc, char** argv) {
   //  Setup XPM
   Pds::Cphw::Reg::set(ip, 8192, 0);
   Xpm* xpm = new (0)Xpm;
+
+  if (msg) xpm->message(msg>>32, msg&0xffffffff);
+
   xpm->start(fixed_rate, lEnableDTI);
 
   while(1) {

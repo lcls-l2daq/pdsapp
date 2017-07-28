@@ -307,6 +307,16 @@ tgtslib_dtisim := rt pthread
 
 #tgtnames := dtisim
 
+tgtsrcs_hsdsim := hsdsim.cc
+tgtincs_hsdsim := cpsw/include cpsw_boost/include yaml/include
+tgtincs_hsdsim += epics/include epics/include/os/Linux
+tgtincs_hsdsim += cpsw/include
+tgtlibs_hsdsim := pds/cphw cpsw/cpsw yaml/yaml-cpp
+tgtlibs_hsdsim += pds/epicstools epics/ca epics/Com
+tgtslib_hsdsim := rt pthread
+
+tgtnames := hsdsim
+
 tgtsrcs_timdly := timdly.cc
 tgtincs_timdly := cpsw/include cpsw_boost/include yaml/include
 tgtincs_timdly += epics/include epics/include/os/Linux
