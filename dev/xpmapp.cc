@@ -24,6 +24,7 @@ extern int optind;
 
 using namespace Pds;
 using namespace Pds::Xpm;
+using Pds::Cphw::XBar;
 
 static void sigHandler( int signal ) {
   Module* m = new(0) Module;
@@ -33,12 +34,13 @@ static void sigHandler( int signal ) {
 
 static void usage(const char *p)
 {
-  printf("Usage: %s -p <platform> -a <xpm ip address> [-u <alias>]\n"
+  printf("Usage: %s -p <platform> -a <xpm ip address> [-u <alias>] [-e <DTIs>]\n"
          "\n"
          "Options:\n"
          "\t -p <platform>          platform number\n"
          "\t -a <ip addr>           xpm private ip address (dotted notation)\n"
          "\t -u <alias>             set device alias\n"
+         "\t -e <DTIs>              bit list of DTIs to enable\n"
          "\t -h                     print this message and exit\n", p);
 }
 
@@ -49,14 +51,14 @@ int main(int argc, char** argv) {
   uint32_t  platform  = NO_PLATFORM;
   const char* xpm_ip  = 0;
   bool      lUsage    = false;
-  int fixedRate=-1;
+  unsigned  dtiEnables = 0;
 
   Pds::DetInfo info(getpid(),DetInfo::NoDetector,0,DetInfo::Evr,0);
 
   char* uniqueid = (char *)NULL;
 
   int c;
-  while ( (c=getopt( argc, argv, "a:p:u:F:h")) != EOF ) {
+  while ( (c=getopt( argc, argv, "a:p:u:F:e:h")) != EOF ) {
     switch(c) {
     case 'a':
       xpm_ip = optarg;
@@ -74,8 +76,8 @@ int main(int argc, char** argv) {
         uniqueid = optarg;
       }
       break;
-    case 'F':
-      fixedRate = atoi(optarg);
+    case 'e':
+      dtiEnables = strtoul(optarg, NULL, 0);
       break;
     case 'h':
       usage(argv[0]);
@@ -107,19 +109,24 @@ int main(int argc, char** argv) {
   Pds::Cphw::Reg::set(xpm_ip, 8192, 0);
 
   Module* m = Module::locate();
-  { Pds::Cphw::AmcTiming* t = &m->_timing;
-    t->xbar.outMap[0] = 1;
-    t->xbar.outMap[1] = 1;
-    t->xbar.outMap[2] = 1;
-    t->xbar.outMap[3] = 1; }
+
+  // Drive backplane
+  m->_timing.xbar.setOut( XBar::BP, XBar::FPGA );
+
+  // BP broadcast
+  m->linkEnable(16, true);
+
+  // DTIs' BP channels
+  for (unsigned i = 0; i < 14; ++i)     // 16 slots max - 2 hub slots (switch, XPM)
+  {
+    m->linkEnable(17 + i, (dtiEnables >> i) & 1);
+  }
 
   m->setL0Enabled(false);
-  if (fixedRate>=0)
-    m->setL0Select_FixedRate(fixedRate);
 
-  Xpm::Server*  server  = new Xpm::Server (*m, info);
-  Manager* manager = new Manager(*m, *server,
-                                 *new CfgClientNfs(info));
+  Xpm::Server* server  = new Xpm::Server(*m, info);
+  Manager*     manager = new Manager(*m, *server,
+                                     *new CfgClientNfs(info));
 
 //   //  EPICS thread initialization
 //   SEVCHK ( ca_context_create(ca_enable_preemptive_callback ),

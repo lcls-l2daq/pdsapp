@@ -33,7 +33,7 @@ unsigned xpmMeasFn(void* arg)
   Cphw::Reg* rxErrs = (Cphw::Reg*)arg;
 
   unsigned e0 = *rxErrs;
-  usleep(350);      // In 350 uS, the 186 MHz clock will count ~64K times
+  usleep(350);            // In 350 uS, the 186 MHz clock will count ~64K times
   unsigned e1 = *rxErrs;
   return (((e1 & 0x0000ffff) - (e0 & 0x0000ffff)) + 0x10000) & 0x0000ffff;
 }
@@ -44,7 +44,8 @@ unsigned dtiMeasFn(void* arg)
   Cphw::Reg* rxErrs = (Cphw::Reg*)arg;
 
   unsigned e0 = *rxErrs;
-  usleep(350);      // In 350 uS, the 186 MHz clock will count ~64K times
+  //usleep(90000);           // In 90 mS, the 186 MHz clock will count ~16.7M times
+  usleep(125000);     // Let rxErrs roll over, but finish everything in ~2 sec.
   unsigned e1 = *rxErrs;
   return (((e1 & 0x00ffffff) - (e0 & 0x00ffffff)) + 0x1000000) & 0x00ffffff;
 }
@@ -295,14 +296,13 @@ int main(int argc, char** argv)
     {
       if (links & (1<<i))
       {
-        xpm->linkEnable(i, true);
+        xpm->setLink(i);
 
         printf("XPM link %2d: ", i);     // No \n on purpose
         unsigned idx = hsr[hsrMap[i]].scanLink(chnMap[i], xpmMeasFn, &xpm->_dsLinkStatus);
         if (idx > 16)  printf("No error-free zone found\n");
         else           printf("An error-free zone found centered at EQ index = %d\n", idx);
 
-        xpm->linkEnable(i, false);
         links &= ~(1<<i);
       }
     }
@@ -317,27 +317,19 @@ int main(int argc, char** argv)
       unsigned nUsLinks = Dti::Module::NUsLinks; // Might eventually be read from a register
       if (links & (1<<i))
       {
-        if (i < nDsLinks)
-        {
-          dti->dsLink(i);
-          // no enable?
+        if (i < nUsLinks) {
+          dti->usLink(i);
+          printf("DTI US link %d: ", i); // No \n on purpose
         }
-        else
-        {
-          dti->usLink(i - nDsLinks);
-          dti->_usLinkConfig[nUsLinks - 1 - (i - nDsLinks)].enable(true);
+        else {
+          dti->dsLink(nDsLinks - 1 - (i - nUsLinks));
+          printf("DTI DS link %d: ", nDsLinks - 1 - (i - nUsLinks)); // No \n on purpose
         }
 
-        printf("DTI link %2d: ", i);     // No \n on purpose
-        Cphw::Reg* rxErrs = i < nDsLinks ? &dti->_dsStatus._rxErrs : &dti->_usStatus._rxErrs;
+        Cphw::Reg* rxErrs = i < nUsLinks ? &dti->_usStatus._rxErrs : &dti->_dsStatus._rxErrs;
         unsigned   idx    = hsr[hsrMap[i]].scanLink(chnMap[i], dtiMeasFn, rxErrs);
         if (idx > 16)  printf("No error-free zone found\n");
         else           printf("An error-free zone found centered at EQ index = %d\n", idx);
-
-        if (i < nDsLinks)
-          ; // no enable?
-        else
-          dti->_usLinkConfig[nUsLinks - 1 - (i - nDsLinks)].enable(false);
 
         links &= ~(1<<i);
       }
