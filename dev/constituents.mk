@@ -308,7 +308,7 @@ tgtincs_pimax := pdsdata/include ndarray/include boost/include
 #
 
 #tgtnames := tpr tprclk tprbsa tprtrg xpm xpmapp xpmerr tprx tprds tprdsapp simapp xpmsim
-tgtnames := tprclk xpm xpmapp xpmerr simapp xpmsim
+tgtnames := tprclk xpm xpmapp xpmerr simapp xpmsim dtiapp
 
 ifneq ($(findstring rhel7,$(tgt_arch)),)
 #  tprdaq only builds on RHEL7 daq machine with AgMD2 library
@@ -423,5 +423,13 @@ tgtlibs_evr := pdsdata/xtcdata pdsdata/psddl_pdsdata pds/configdata
 tgtlibs_evr += evgr/evr evgr/evg
 tgtlibs_evr += $(commonlibs) pds/evgr
 tgtslib_evr := $(commonslib)
+
+tgtsrcs_dtiapp := dtiapp.cc
+tgtincs_dtiapp := pdsdata/include ndarray/include boost/include
+tgtincs_dtiapp += epics/include epics/include/os/Linux
+tgtlibs_dtiapp := pds/dti pds/cphw pds/tag cpsw/cpsw yaml/yaml-cpp
+tgtlibs_dtiapp += $(commonlibs)
+tgtlibs_dtiapp += pds/epicstools epics/ca epics/Com
+tgtslib_dtiapp := dl pthread rt
 
 #tgtnames := tprclk tprds

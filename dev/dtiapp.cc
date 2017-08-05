@@ -6,9 +6,9 @@
 #include "pds/management/EventAppCallback.hh"
 #include "pds/management/FastSegWire.hh"
 #include "pds/service/Task.hh"
-#include "pds/xpm/Server.hh"
-#include "pds/xpm/Manager.hh"
-#include "pds/xpm/Module.hh"
+#include "pds/dti/Server.hh"
+#include "pds/dti/Manager.hh"
+#include "pds/dti/Module.hh"
 #include "pds/cphw/AmcTiming.hh"
 
 #include "cadef.h"
@@ -23,24 +23,34 @@
 extern int optind;
 
 using namespace Pds;
-using namespace Pds::Xpm;
+using namespace Pds::Dti;
 using Pds::Cphw::XBar;
+
+static unsigned usLinks;
 
 static void sigHandler( int signal ) {
   Module* m = Module::locate();
-  m->setL0Enabled(false);
+  unsigned links = usLinks;
+  for (unsigned i = 0; i < Module::NUsLinks; ++i)
+  {
+    if (links & (1<<i))
+    {
+      m->_usLinkConfig[i].enable(false);
+      links &= ~(1<<i);
+    }
+  }
   ::exit(signal);
 }
 
 static void usage(const char *p)
 {
-  printf("Usage: %s -p <platform> -a <xpm ip address> [-u <alias>] [-e <DTIs>]\n"
+  printf("Usage: %s -p <platform> -a <dti ip address> [-u <alias>] [-e <DTIs>]\n"
          "\n"
          "Options:\n"
          "\t -p <platform>          platform number\n"
-         "\t -a <ip addr>           xpm private ip address (dotted notation)\n"
+         "\t -a <ip addr>           dti private ip address (dotted notation)\n"
          "\t -u <alias>             set device alias\n"
-         "\t -e <DTIs>              bit list of DTIs to enable\n"
+         "\t -l <Detectors>         bit list of upstream links to enable\n"
          "\t -h                     print this message and exit\n", p);
 }
 
@@ -51,14 +61,13 @@ int main(int argc, char** argv) {
   uint32_t  platform  = NO_PLATFORM;
   const char* ip  = 0;
   bool      lUsage    = false;
-  unsigned  dtiEnables = 0;
 
-  Pds::DetInfo info(getpid(),DetInfo::NoDetector,0,DetInfo::Evr,0);
+  Pds::DetInfo info(getpid(),DetInfo::NoDetector,0,DetInfo::NoDevice,0);
 
   char* uniqueid = (char *)NULL;
 
   int c;
-  while ( (c=getopt( argc, argv, "a:p:u:F:e:h")) != EOF ) {
+  while ( (c=getopt( argc, argv, "a:p:u:l:h")) != EOF ) {
     switch(c) {
     case 'a':
       ip = optarg;
@@ -76,8 +85,8 @@ int main(int argc, char** argv) {
         uniqueid = optarg;
       }
       break;
-    case 'e':
-      dtiEnables = strtoul(optarg, NULL, 0);
+    case 'l':
+      usLinks = strtoul(optarg, NULL, 0);
       break;
     case 'h':
       usage(argv[0]);
@@ -108,23 +117,36 @@ int main(int argc, char** argv) {
 
   Pds::Cphw::Reg::set(ip, 8192, 0);
 
+  // Revisit: Perhaps the following Module accesses don't belong here
   Module* m = Module::locate();
 
-  // Drive backplane
-  m->_timing.xbar.setOut( XBar::BP, XBar::FPGA );
+  // Enable reception of timing from the backplane
+  m->_timing.xbar.setOut( XBar::FPGA, XBar::BP );
 
-  // BP broadcast
-  m->linkEnable(16, true);
+  m->bpTxInterval(100);
 
-  // DTIs' BP channels
-  for (unsigned i = 0; i < 14; ++i)     // 16 slots max - 2 hub slots (switch, XPM)
+  m->clearCounters();
+
+  for (unsigned i = 0; i < 2; ++i)      // Revisit: 2 -> NUsLinks + NDsLinks
+    m->_pgp[i].clearCounters();
+
+  unsigned links = usLinks;
+  for (unsigned i = 0; i < Module::NUsLinks; ++i)
   {
-    m->linkEnable(17 + i, (dtiEnables >> i) & 1);
+    if (links & (1<<i))
+    {
+      m->_usLinkConfig[i].fwdMask(1 << i); // Revisit: Allow forwarding to multiple DRPs
+      m->_usLinkConfig[i].trigDelay(0);    // Revisit: Dial this in
+      m->_usLinkConfig[i].enable(true);
+      links &= ~(1<<i);
+    }
   }
 
-  m->setL0Enabled(false);
+  m->updateCounters();
 
-  Xpm::Server* server  = new Xpm::Server(*m, info);
+  m->init();
+
+  Dti::Server* server  = new Dti::Server(*m, info);
   Manager*     manager = new Manager(*m, *server, *new CfgClientNfs(info));
 
 //   //  EPICS thread initialization
