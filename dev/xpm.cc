@@ -67,11 +67,19 @@ int main(int argc, char** argv) {
   int  ringChan=-1;
   int  freqSel=-1;
   int  bwSel=-1;
+  unsigned amc=0;
 
-  while ( (c=getopt( argc, argv, "a:F:L:l:s:B:f:S:Rbrh")) != EOF ) {
+  while ( (c=getopt( argc, argv, "a:c:F:L:l:s:B:f:S:Rbrh")) != EOF ) {
     switch(c) {
     case 'a':
       ip = optarg; break;
+      break;
+    case 'c':
+      amc =  strtoul(optarg,NULL,0);
+      if ((amc != 0) && (amc != 1)) {
+        printf("Card argument must be for AMC 0 or 1; got %d\n", amc);
+        lUsage = true;
+      }
       break;
     case 'F':
       fixedRate = atoi(optarg);
@@ -180,8 +188,8 @@ int main(int argc, char** argv) {
   }
 
   printf("pllStatus 0x%x:%x\n",
-         unsigned(m->pllStatus0()),
-         unsigned(m->pllStatus1()));
+         unsigned(m->pllStatus0(amc)),
+         unsigned(m->pllStatus1(amc)));
   printf("pllConfig 0x%x\n",
          unsigned(m->_pllConfig));
 
@@ -194,32 +202,32 @@ int main(int argc, char** argv) {
   }
 
   if (lPll) {
-    m->pllBwSel  (7);
-    m->pllRateSel(0xa);
-    m->pllFrqSel (0x692);
-    m->pllBypass (false);
-    m->pllReset  ();
+    m->pllBwSel  (amc, 7);
+    m->pllRateSel(amc, 0xa);
+    m->pllFrqSel (amc, 0x692);
+    m->pllBypass (amc, false);
+    m->pllReset  (amc);
     usleep(10000);
     printf("pllStatus 0x%x\n",
            unsigned(m->_pllConfig));
   }
 
   if (freqSel>=0) {
-    m->pllFrqSel(freqSel);
-    m->pllReset();
+    m->pllFrqSel(amc, freqSel);
+    m->pllReset(amc);
   }
 
   if (bwSel>=0) {
-    m->pllBwSel(bwSel);
-    m->pllReset();
+    m->pllBwSel(amc, bwSel);
+    m->pllReset(amc);
   }
 
   if (skewSteps)
-    m->pllSkew(skewSteps);
+    m->pllSkew(amc, skewSteps);
 
   if (lPllbypass) {
-    m->pllBypass(true);
-    m->pllReset();
+    m->pllBypass(amc, true);
+    m->pllReset(amc);
   }
 
   if (lreset) {

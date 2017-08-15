@@ -39,6 +39,7 @@ void usage(const char* p) {
   printf("Usage: %s [options]\n",p);
   printf("Options: -a <IP addr (dotted notation)> : Use network <IP>\n");
   printf("         -p <port>                      : Use network <port>\n");
+  printf("         -c <card>                      : Select AMC card 0 or 1 [0]\n");
   printf("         -L <ds link mask>              : Enable selected link(s)\n");
   printf("         -R                             : Reset selected link(s)\n");
   printf("         -l                             : Put selected link(s) in loopback mode\n");
@@ -91,6 +92,7 @@ int main(int argc, char** argv) {
   bool lPllbypass=false;
   int  freqSel=-1;
   int  bwSel=-1;
+  unsigned amc=0;
 
   while ( (c=getopt( argc, argv, "a:p:L:ls:f:S:d:DRbrh")) != EOF ) {
     switch(c) {
@@ -99,6 +101,13 @@ int main(int argc, char** argv) {
       break;
     case 'p':
       port = strtoul(optarg,NULL,0);
+      break;
+    case 'c':
+      amc =  strtoul(optarg,NULL,0);
+      if ((amc != 0) && (amc != 1)) {
+        printf("Card argument must be for AMC 0 or 1; got %d\n", amc);
+        lUsage = true;
+      }
       break;
     case 'L':
       linkEnables = strtoul(optarg,NULL,0);
@@ -165,37 +174,37 @@ int main(int argc, char** argv) {
 
   Module* m = Module::locate();
 
-  m->dumpPll();
+  m->dumpPll(amc);
 
   if (lPll) {
-    m->pllBwSel  (6);
-    m->pllRateSel(0xa);
-    m->pllFrqSel (0x692);
-    m->pllBypass (false);
-    m->pllReset  ();
+    m->pllBwSel  (amc, 6);
+    m->pllRateSel(amc, 0xa);
+    m->pllFrqSel (amc, 0x692);
+    m->pllBypass (amc, false);
+    m->pllReset  (amc);
     usleep(10000);
-    m->dumpPll();
+    m->dumpPll(amc);
   }
 
   if (freqSel>=0) {
-    m->pllFrqSel(freqSel);
-    m->pllReset();
+    m->pllFrqSel(amc, freqSel);
+    m->pllReset(amc);
   }
 
   if (bwSel>=0) {
-    m->pllBwSel(bwSel);
-    m->pllReset();
+    m->pllBwSel(amc, bwSel);
+    m->pllReset(amc);
   }
 
   if (skewSteps)
-    m->pllSkew(skewSteps);
+    m->pllSkew(amc, skewSteps);
 
   if (lPllbypass) {
-    m->pllBypass(true);
-    m->pllReset();
+    m->pllBypass(amc, true);
+    m->pllReset(amc);
   }
 
-  m->dumpPll();
+  m->dumpPll(amc);
 
   unsigned links = (1 << NDSLinks) - 1;
   for(unsigned i=0; links; i++)
