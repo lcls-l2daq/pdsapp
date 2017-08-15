@@ -161,7 +161,7 @@ tgtincs_netlink :=
 libnames :=
 #tgtnames := tasktest xcasttest quadadc quadadc_dma amctiming
 #tgtnames := tasktest xcasttest quadadc quadadc_dma quadadc_mon quadadc_cal amctiming amcmonitor tprca
-tgtnames := tasktest xcasttest amctiming amcmonitor tprca xpm_simple dti_simple dtireg dti_links xpm_links
+tgtnames := tasktest xcasttest amctiming amcmonitor tprca xpm_simple dti_simple dtireg dti_links xpm_links xpmPVs dtiPVs
 
 tgtsrcs_tasktest := tasktest.cc
 tgtlibs_tasktest := pds/service pdsdata/xtcdata
@@ -345,3 +345,27 @@ tgtslib_xpm_links := rt dl
 
 #tgtnames := xpm_links
 
+commonlibs  := pdsdata/xtcdata pdsdata/appdata pdsdata/psddl_pdsdata
+commonlibs  += pds/service pds/collection pds/xtc pds/mon pds/vmon pds/utility pds/management pds/client
+commonlibs  += pds/config pds/configdbc pds/confignfs pds/configsql
+commonlibs  += offlinedb/mysqlclient
+
+tgtsrcs_xpmPVs := xpmPVs.cc
+tgtincs_xpmPVs := cpsw/include cpsw_boost/include yaml/include
+tgtincs_xpmPVs += epics/include epics/include/os/Linux
+tgtlibs_xpmPVs := $(commonlibs)
+tgtlibs_xpmPVs += pds/xpm pds/cphw pds/tag cpsw/cpsw yaml/yaml-cpp
+tgtlibs_xpmPVs += pds/epicstools epics/ca epics/Com
+tgtslib_xpmPVs := rt pthread
+
+#tgtnames := xpmPVs
+
+tgtsrcs_dtiPVs := dtiPVs.cc
+tgtincs_dtiPVs := cpsw/include cpsw_boost/include yaml/include
+tgtincs_dtiPVs += epics/include epics/include/os/Linux
+tgtlibs_dtiPVs := $(commonlibs)
+tgtlibs_dtiPVs += pds/dti pds/cphw cpsw/cpsw yaml/yaml-cpp
+tgtlibs_dtiPVs += pds/epicstools epics/ca epics/Com
+tgtslib_dtiPVs := rt pthread
+
+#tgtnames := dtiPVs
