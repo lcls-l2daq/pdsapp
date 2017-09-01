@@ -315,7 +315,7 @@ tgtlibs_hsdsim := pds/cphw cpsw/cpsw yaml/yaml-cpp
 tgtlibs_hsdsim += pds/epicstools epics/ca epics/Com
 tgtslib_hsdsim := rt pthread
 
-tgtnames := hsdsim
+tgtnames += hsdsim
 
 tgtsrcs_timdly := timdly.cc
 tgtincs_timdly := cpsw/include cpsw_boost/include yaml/include
@@ -325,14 +325,30 @@ tgtlibs_timdly := pds/cphw cpsw/cpsw yaml/yaml-cpp
 tgtlibs_timdly += pds/epicstools epics/ca epics/Com
 tgtslib_timdly := rt pthread
 
-#tgtnames := timdly
+tgtnames += timdly
+
+tgtsrcs_tdmca := tdmca.cc
+tgtlibs_tdmca := pds/cphw cpsw/cpsw yaml/yaml-cpp
+tgtlibs_tdmca += pds/epicstools epics/ca epics/Com
+tgtslib_tdmca := ${USRLIBDIR}/rt
+tgtincs_tdmca := cpsw/include
+tgtincs_tdmca += epics/include epics/include/os/Linux
+
+tgtnames += tdmca
 
 tgtsrcs_xpm_simple := xpm_simple.cc
-tgtincs_xpm_simple := cpsw/include cpsw_boost/include yaml/include
+#tgtincs_xpm_simple := cpsw/include cpsw_boost/include yaml/include
 tgtlibs_xpm_simple := pds/cphw cpsw/cpsw yaml/yaml-cpp
 tgtslib_xpm_simple := rt dl
 
 #tgtnames := xpm_simple
+
+tgtsrcs_xpm_simple_udp := xpm_simple.cc
+tgtincs_xpm_simple_udp := cpsw/include cpsw_boost/include yaml/include
+tgtlibs_xpm_simple_udp := pds/cphwr
+tgtslib_xpm_simple_udp := rt dl
+
+tgtnames += xpm_simple_udp
 
 tgtsrcs_dti_simple := dti_simple.cc
 tgtincs_dti_simple := cpsw/include cpsw_boost/include yaml/include

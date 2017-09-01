@@ -8,9 +8,9 @@
  **      [127: 64] timestamp, 
  **      [159:128] tag word, 
  **      [191:160] l1 counter
- **      [235:192] raw samples
- **      [243:236] channel mask
- **      [307:244] reserved
+ **      [215:192] raw samples  (meaningless)
+ **      [223:216] channel mask
+ **      [255:224] reserved
  **      For each channel in channel mask
  **        For each FEX algorithm configured
  **          [16-byte FEX header]
@@ -20,8 +20,8 @@
  **            [ 63: 48] internal buffer number
  **            [127: 64] reserved
  **          [NSAMP*2-byte payload samples]
- **            [15]      data type (0=sample data, 1=spacer)
- **            [14:0]    data (sample value or spacer samples-1)
+ **            [15:14]   data type (0=sample data, 1=spacer)
+ **            [13:0]    data (sample value or spacer samples-1)
  **/
 
 #include <stdio.h>
@@ -383,21 +383,21 @@ char* ThrFex::process(const char* begin,
     while(q < e) {
       if (*q<_low || *q>_high) {
         if (nskip) {
-          *u++ = (1<<15) | (nskip-1);
+          *u++ = (1<<14) | (nskip-1);
           nskip = 0;
         }
         *u++ = *q;
       }
       else {
-        if (++nskip==0x8000) {
-          *u++ = (1<<15) | (nskip-1);
+        if (++nskip==0x4000) {
+          *u++ = (1<<14) | (nskip-1);
           nskip = 0;
         }
       }
       q++;
     }
     if (nskip)
-      *u++ = (1<<15) | (nskip-1);
+      *u++ = (1<<14) | (nskip-1);
 
     unsigned sz = reinterpret_cast<char*>(u)-(output+16);
     sz = (sz+0xf)&~0xf;

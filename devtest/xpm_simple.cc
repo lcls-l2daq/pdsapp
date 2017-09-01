@@ -40,7 +40,7 @@ void usage(const char* p) {
 }
 
 class Xpm {
-private:
+public:
   AmcTiming _timing;
   uint32_t  _reserved[(0x80000000-sizeof(AmcTiming))>>2];
   //  uint32_t _reserved[0x80000000>>2];
@@ -92,6 +92,12 @@ private:
         _control1 = 0;
       }
     }
+    void lockStats(bool v) {
+      unsigned u = _control1;
+      if (v) u &= ~(1<<31);
+      else   u |=  (1<<31);
+      _control1 = u;
+    }
   } _partitionL0Config;
   
   class PartitionStatus {
@@ -117,7 +123,7 @@ public:
   Xpm() {}
   void message(unsigned header, unsigned payload) {
     _msgPayload = payload;
-    _msgHeader  = header&0x7fff | (1<<15); // must be last
+    _msgHeader  = (header&0x7fff) | (1<<15); // must be last
   }
   void start(unsigned rate, bool lEnableDTI) {
     //  Drive backplane
@@ -145,11 +151,13 @@ public:
       uint64_t q = _partitionStatus.s; \
       *dv++ = q - *v; \
       *v++  = q; }
+    //    _partitionL0Config.lockStats(true);
     FILL(_enabled);
     FILL(_inhibited);
     FILL(_ninput);
     FILL(_ninhibited);
     FILL(_naccepted);
+    //    _partitionL0Config.lockStats(false);
 #undef FILL
   }
   void inhibits(uint32_t* v, 
@@ -169,8 +177,8 @@ public:
       _index = ((16+i)<<4) | (_partn & 0xf);
       unsigned q; bool b0,b1,b2;
       _linkStatus.status(b0,b1,b2,q);
-      dv[i] = v[i] - q;
-      v[i] = q;
+      dv[i] = q - v[i];
+      v [i] = q;
     }
   }
 };
@@ -185,12 +193,14 @@ static void process(Xpm& xpm)
                                  "naccepted " };
   static uint32_t inh[32], dinh[32];
   static uint32_t rcv[16], drcv[16];
+  static bool lLock=false;
 
   printf("link partition: %u\n", _partn);
 
   xpm.stats(stats,dstats);
   for(unsigned i=0; i<5; i++)
-    printf("%s: %016lu [%010lu]\n", title[i], stats[i], dstats[i]);
+    printf("%s: %016llu [%010llu]\n", 
+           title[i], (unsigned long long)stats[i], (unsigned long long)dstats[i]);
 
   xpm.inhibits(inh,dinh);
   for(unsigned i=0; i<32; i++)
@@ -201,7 +211,7 @@ static void process(Xpm& xpm)
     printf("  %06u [%06u] (%04x)", rcv[i], drcv[i], rcv[i+8]);
   }
 
-  printf("\n----\n");
+  printf("\n===\n");
 }
 
 void sigHandler( int signal ) {

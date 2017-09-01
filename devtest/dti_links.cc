@@ -177,17 +177,19 @@ int main(int argc, char** argv) {
 
   unsigned  v[14];
   unsigned dv[14];
-  memset(v, 0, sizeof(v));
 
   dti->linkStats(v,dv);
-  for(unsigned j=0; j<14; j++)
+  for(unsigned j=0; j<14; j++) {
     printf("%08x:",v[j]>>24);
-  printf("\n");
+    v[j]=0;
+  }
+  printf("\n--\n");
 
   while(1) {
     usleep(1000000);
     dti->linkStats(v,dv);
     for(unsigned j=0; j<14; j++)
+      //      printf("%08x:",v[j]);
       printf("%08u:",dv[j]&0xffff);
     printf("\n");
   }
