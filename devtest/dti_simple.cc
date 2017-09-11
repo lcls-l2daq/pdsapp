@@ -32,10 +32,12 @@ using Pds::Cphw::RingBuffer;
 using Pds::Cphw::XBar;
 
 extern int optind;
+bool keepRunning = false;   // keep running on exit
 
 void usage(const char* p) {
   printf("Usage: %s [options]\n",p);
   printf("Options: -a <IP addr (dotted notation)> : Use network <IP>\n");
+  printf("         -k                             : Keep running on exit\n");
 }
 
 class Dti {
@@ -147,7 +149,9 @@ public:
   }
   void stop()
   {
-    _usLink[0].enable(0, 0);
+    if (!keepRunning) {
+      _usLink[0].enable(0, 0);
+    }
   }
   void stats(uint32_t* v,
              uint32_t* dv) {
@@ -213,10 +217,11 @@ int main(int argc, char** argv) {
   unsigned partition = 0;
   bool lRTM = false;
 
-  while ( (c=getopt( argc, argv, "a:r")) != EOF ) {
+  while ( (c=getopt( argc, argv, "a:rk")) != EOF ) {
     switch(c) {
     case 'a': ip = optarg; break;
     case 'r': lRTM = true; break;
+    case 'k': keepRunning = true; break;
     default:  usage(argv[0]); return 0;
     }
   }
