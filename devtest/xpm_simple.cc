@@ -28,9 +28,14 @@ using Pds::Cphw::XBar;
 
 extern int optind;
 
+bool      _keepRunning = false;   // keep running on exit
+unsigned  _partn = 0;             // link partition 
+
 void usage(const char* p) {
   printf("Usage: %s [options]\n",p);
   printf("Options: -a <IP addr (dotted notation)> : Use network <IP>\n");
+  printf("         -t <partition>                 : Link partition (default=0)\n");
+  printf("         -k                             : Keep running on exit\n");
   printf("         -e                             : Enable DTI link\n");
 }
 
@@ -83,7 +88,9 @@ private:
       _control1 = 0x80010000;
     }
     void stop() {
-      _control1 = 0;
+      if (!_keepRunning) {
+        _control1 = 0;
+      }
     }
   } _partitionL0Config;
   
@@ -108,13 +115,13 @@ public:
     _timing.xbar.setOut( XBar::BP, XBar::FPGA );
 
     // Configure dslink
-    _index = (5<<4);  // FP to RTM
+    _index = (5<<4) | (_partn & 0xf);  // FP to RTM
     _linkConfig.setup(false);
 
-    _index = (16<<4);  // BP broadcast
+    _index = (16<<4) | (_partn & 0xf);  // BP broadcast
     _linkConfig.setup(true);
 
-    _index = (17<<4);  // BP channel 1
+    _index = (17<<4) | (_partn & 0xf);  // BP channel 1
     _linkConfig.setup(lEnableDTI);
 
     // Setup partition
@@ -150,7 +157,7 @@ public:
   void bpRecvs(uint32_t* v,
                uint32_t* dv) {
     for(unsigned i=0; i<16; i++) {
-      _index = (16+i)<<4;
+      _index = ((16+i)<<4) | (_partn & 0xf);
       unsigned q; bool b0,b1,b2;
       _linkStatus.status(b0,b1,b2,q);
       dv[i] = v[i] - q;
@@ -170,9 +177,11 @@ static void process(Xpm& xpm)
   static uint32_t inh[32], dinh[32];
   static uint32_t rcv[16], drcv[16];
 
+  printf("link partition: %u\n", _partn);
+
   xpm.stats(stats,dstats);
   for(unsigned i=0; i<5; i++)
-    printf("%s: %016llu [%010llu]\n", title[i], stats[i], dstats[i]);
+    printf("%s: %016lu [%010lu]\n", title[i], stats[i], dstats[i]);
 
   xpm.inhibits(inh,dinh);
   for(unsigned i=0; i<32; i++)
@@ -205,12 +214,14 @@ int main(int argc, char** argv) {
   unsigned fixed_rate = 6;
   bool lEnableDTI=false;
 
-  while ( (c=getopt( argc, argv, "a:er:")) != EOF ) {
+  while ( (c=getopt( argc, argv, "a:er:t:kh")) != EOF ) {
     switch(c) {
     case 'a': ip = optarg; break;
     case 'e': lEnableDTI=true; break;
     case 'r': fixed_rate = strtoul(optarg,NULL,0); break;
-    default:  usage(argv[0]); return 0;
+    case 't': _partn = strtoul(optarg, NULL, 0); break;
+    case 'k': _keepRunning = true; break;
+    case 'h': default:  usage(argv[0]); return 0;
     }
   }
 

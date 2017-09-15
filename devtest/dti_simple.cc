@@ -32,11 +32,13 @@ using Pds::Cphw::RingBuffer;
 using Pds::Cphw::XBar;
 
 extern int optind;
-bool keepRunning = false;   // keep running on exit
+bool _keepRunning = false;    // keep running on exit
+unsigned _partn = 0;
 
 void usage(const char* p) {
   printf("Usage: %s [options]\n",p);
   printf("Options: -a <IP addr (dotted notation)> : Use network <IP>\n");
+  printf("         -t <partition>                 : Upstream link partition (default=0)\n");
   printf("         -k                             : Keep running on exit\n");
 }
 
@@ -54,8 +56,8 @@ private:  // only what's necessary here
     void enable(unsigned fwdmask,
                 unsigned delay) {
       if (fwdmask) {
-        // enable=T, tagEnable=F, L1Enable=F, partn=0, fwdMode=RR
-        _control = 1 | ((delay&0xff)<<8) | ((fwdmask&0x1fff)<<16);
+        // enable=T, tagEnable=F, L1Enable=F, fwdMode=RR
+        _control = 1 | ((_partn&0xf)<<4) | ((delay&0xff)<<8) | ((fwdmask&0x1fff)<<16);
         //        _control = 1 | ((delay&0xff)<<8) | ((0&0x1fff)<<16);
       }
       else {
@@ -149,7 +151,7 @@ public:
   }
   void stop()
   {
-    if (!keepRunning) {
+    if (!_keepRunning) {
       _usLink[0].enable(0, 0);
     }
   }
@@ -197,6 +199,7 @@ public:
       *v++  = q; }
     FILL(_bpLinkSent);
 
+    printf("link partition: %u\n", _partn);
     printf("linkUp   : %08x\n",unsigned(_linkUp));
   }
 };
@@ -214,15 +217,15 @@ int main(int argc, char** argv) {
   int c;
 
   const char* ip  = "10.0.1.103";
-  unsigned partition = 0;
   bool lRTM = false;
 
-  while ( (c=getopt( argc, argv, "a:rk")) != EOF ) {
+  while ( (c=getopt( argc, argv, "a:t:rkh")) != EOF ) {
     switch(c) {
     case 'a': ip = optarg; break;
+    case 't': _partn = strtoul(optarg, NULL, 0); break;
     case 'r': lRTM = true; break;
-    case 'k': keepRunning = true; break;
-    default:  usage(argv[0]); return 0;
+    case 'k': _keepRunning = true; break;
+    case 'h': default:  usage(argv[0]); return 0;
     }
   }
 
