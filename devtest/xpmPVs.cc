@@ -13,11 +13,24 @@
 #include "pds/xpm/Module.hh"
 #include "pds/xpm/PVStats.hh"
 #include "pds/xpm/PVCtrls.hh"
+#include "pds/xpm/PVPStats.hh"
+#include "pds/xpm/PVPCtrls.hh"
+
+#include "pds/epicstools/EpicsCA.hh"
+#include "pds/epicstools/PVWriter.hh"
+#include "pds/epicstools/PVMonitorCb.hh"
 
 #include "pds/service/Routine.hh"
+#include "pds/service/Semaphore.hh"
 #include "pds/service/Task.hh"
 #include "pds/service/Timer.hh"
 
+using Pds_Epics::EpicsCA;
+using Pds_Epics::PVWriter;
+using Pds_Epics::PVMonitorCb;
+using Pds::Xpm::CoreCounts;
+using Pds::Xpm::L0Stats;
+using std::string;
 
 extern int optind;
 
@@ -35,35 +48,13 @@ namespace Pds {
       ::exit(signal);
     }
 
-    class PvAllocate : public Routine {
-    public:
-      PvAllocate(PVStats& pvs,
-                 PVCtrls& pvc,
-                 char* partition,
-                 Module& m) :
-        _pvs(pvs), _pvc(pvc), _partition(partition), _m(m) {}
-    public:
-      void routine() {
-        std::ostringstream o;
-        o << "DAQ:" << _partition;
-        std::string pvbase = o.str();
-        _pvs.allocate(pvbase);
-        _pvc.allocate(pvbase);
-        delete this;
-      }
-    private:
-      PVStats&    _pvs;
-      PVCtrls&    _pvc;
-      std::string _partition;
-      Module&     _m;
-    };
-
-    class StatsTimer : public Timer {
+    class StatsTimer : public Timer, public PVMonitorCb {
     public:
       StatsTimer(Module& dev);
       ~StatsTimer() { _task->destroy(); }
     public:
-      void allocate(char* partition);
+      void allocate(const char* module_prefix,
+                    const char* partition_prefix);
       void start   ();
       void cancel  ();
       void expired ();
@@ -71,15 +62,38 @@ namespace Pds {
       //      unsigned duration  () const { return 1000; }
       unsigned duration  () const { return 1010; }  // 1% error on timer
       unsigned repetitive() const { return 1; }
+    public:  // PVMonitorCb interface
+      void     updated   ();
+    private:
+      void     _allocate();
     private:
       Module&    _dev;
+      Semaphore  _sem;
       Task*      _task;
-      CoreCounts _c;
-      L0Stats    _s;
+      string     _module_prefix;
+      string     _partition_prefix;
+      EpicsCA*   _partPV;
+      PVWriter*  _paddrPV;
+      unsigned   _partitions;
       timespec   _t;
+      CoreCounts _c;
+      L0Stats    _s   [Pds::Xpm::Module::NPartitions];
+      PVPStats   _pvps[Pds::Xpm::Module::NPartitions];
       PVStats    _pvs;
       PVCtrls    _pvc;
+      PVPCtrls*  _pvpc[Pds::Xpm::Module::NPartitions];
+      friend class PvAllocate;
     };
+
+    class PvAllocate : public Routine {
+    public:
+      PvAllocate(StatsTimer& parent) : _parent(parent) {}
+    public:
+      void routine() { _parent._allocate(); delete this; }
+    private:
+      StatsTimer& _parent;
+    };
+
   };
 };
 
@@ -87,22 +101,79 @@ using namespace Pds;
 using namespace Pds::Xpm;
 
 StatsTimer::StatsTimer(Module& dev) :
-  _dev      (dev),
-  _task     (new Task(TaskObject("PtnS"))),
-  _pvc      (dev)
+  _dev       (dev),
+  _sem       (Semaphore::FULL),
+  _task      (new Task(TaskObject("PtnS"))),
+  _partitions(0),
+  _pvc       (dev,_sem)
 {
 }
 
-void StatsTimer::allocate(char* partition)
+void StatsTimer::allocate(const char* module_prefix,
+                          const char* partition_prefix)
 {
-  clock_gettime(CLOCK_REALTIME,&_t);
-  _s.l0Enabled=0;
-  _s.l0Inhibited=0;
-  _s.numl0=0;
-  _s.numl0Inh=0;
-  _s.numl0Acc=0;
-  _s.rx0Errs=0;
-  _task->call(new PvAllocate(_pvs, _pvc, partition, _dev));
+  _module_prefix    = module_prefix;
+  _partition_prefix = partition_prefix;
+
+  _task->call(new PvAllocate(*this));
+}
+
+void StatsTimer::_allocate()
+{
+  _pvs.allocate(_module_prefix);
+  _pvc.allocate(_module_prefix);
+
+  for(unsigned i=0; i<Pds::Xpm::Module::NPartitions; i++) {
+    std::stringstream ostr;
+    ostr << _partition_prefix << ":" << i;
+    _pvps[i].allocate(ostr.str());
+    _pvpc[i] = new PVPCtrls(_dev,_sem,i);
+    _pvpc[i]->allocate(ostr.str());
+  }
+
+  { std::stringstream ostr;
+    ostr << _module_prefix << ":PARTITIONS";
+    _partPV  = new EpicsCA(ostr.str().c_str(),this); }
+
+  { std::stringstream ostr;
+    ostr << _module_prefix << ":PAddr";
+    _paddrPV = new PVWriter(ostr.str().c_str()); }
+}
+
+void StatsTimer::updated()  // PARTITIONS updated
+{
+  unsigned partitions = *reinterpret_cast<const unsigned*>(_partPV->data());
+
+  printf("StatsTimer::updated  _partitions %08x -> %08x\n",
+         _partitions, partitions);
+
+  //  _sem.take();
+
+  //
+  //  Disable partition control 
+  //
+  unsigned disabled = _partitions & ~partitions;
+  for(unsigned i=0; i<Pds::Xpm::Module::NPartitions; i++) {
+    if ((1<<i)&disabled) {
+      _pvpc[i]->enable(false);
+    }
+  }
+
+  //
+  //  Update new partition controls
+  //
+  unsigned enabled = partitions & ~_partitions;
+  for(unsigned i=0; i<Pds::Xpm::Module::NPartitions; i++) {
+    if ((1<<i)&enabled) {
+      _dev.setPartition(i);
+      _s[i] = _dev.l0Stats();
+      _pvpc[i]->enable(true);
+    }
+  }
+
+  //  _sem.give();
+
+  _partitions = partitions;
 }
 
 void StatsTimer::start()
@@ -111,7 +182,7 @@ void StatsTimer::start()
 
   _dev._timing.resetStats();
 
-  _pvs.begin(_dev.l0Stats());
+  //  _pvs.begin(_dev.l0Stats());
   Timer::start();
 }
 
@@ -128,18 +199,38 @@ void StatsTimer::expired()
 {
   timespec t; clock_gettime(CLOCK_REALTIME,&t);
   CoreCounts c = _dev.counts();
-  L0Stats    s = _dev.l0Stats();
   double dt = double(t.tv_sec-_t.tv_sec)+1.e-9*(double(t.tv_nsec)-double(_t.tv_nsec));
+  _sem.take();
   _pvs.update(c,_c,dt);
-  _pvs.update(s,_s,dt);
+  _sem.give();
+  for(unsigned i=0; i<Pds::Xpm::Module::NPartitions; i++) {
+    if ((1<<i)&_partitions) {
+      _sem.take();
+      _dev.setPartition(i);
+      L0Stats    s = _dev.l0Stats();
+      _pvps[i].update(s,_s[i],dt);
+      _sem.give();
+      _s[i]=s;
+      printf("-- partition %u --\n",i);
+      s.dump();
+    }
+  }
+
   _c=c;
-  _s=s;
   _t=t;
+
+  *reinterpret_cast<unsigned*>(_paddrPV->data()) = _dev._paddr; 
+  _paddrPV->put();
+
+  ca_flush_io();
 }
 
 
 void usage(const char* p) {
-  printf("Usage: %s [-a <IP addr (dotted notation)>] [-p <port>] -P partition\n",p);
+  printf("Usage: %s [options]\n",p);
+  printf("Options: -a <IP addr> (default: 10.0.2.102)\n"
+         "         -p <port>    (default: 8193)\n"
+         "         -P <prefix>  (default: DAQ:LAB2\n");
 }
 
 int main(int argc, char** argv)
@@ -150,8 +241,10 @@ int main(int argc, char** argv)
   bool lUsage = false;
 
   const char* ip = "10.0.2.102";
-  unsigned short port = 8192;
-  char* partition = NULL;
+  unsigned short port = 8193;
+  const char* prefix = "DAQ:LAB2";
+  char module_prefix[64];
+  char partition_prefix[64];
 
   while ( (c=getopt( argc, argv, "a:p:P:h")) != EOF ) {
     switch(c) {
@@ -162,18 +255,13 @@ int main(int argc, char** argv)
       port = strtoul(optarg,NULL,0);
       break;
     case 'P':
-      partition = optarg;
+      prefix = optarg;
       break;
     case '?':
     default:
       lUsage = true;
       break;
     }
-  }
-
-  if (partition==NULL) {
-    printf("%s: partition required\n",argv[0]);
-    lUsage = true;
   }
 
   if (optind < argc) {
@@ -186,6 +274,12 @@ int main(int argc, char** argv)
     exit(1);
   }
 
+  //  Crate number is "c" in IP a.b.c.d
+  sprintf(module_prefix   ,"%s:XPM:%u" ,
+          prefix,
+          strtoul(strchr(strchr(ip,'.')+1,'.')+1,NULL,10));
+  sprintf(partition_prefix,"%s:PART",prefix);
+
   Pds::Cphw::Reg::set(ip, port, 0);
 
   Module* m = Module::locate();
@@ -197,7 +291,8 @@ int main(int argc, char** argv)
 
   ::signal( SIGINT, sigHandler );
 
-  timer->allocate(partition);
+  timer->allocate(module_prefix,
+                  partition_prefix);
   timer->start();
 
   task->mainLoop();
