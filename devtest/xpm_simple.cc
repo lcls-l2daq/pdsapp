@@ -171,14 +171,34 @@ public:
       FILL(i);
 #undef FILL
   }
+  void dsRecvs(uint32_t* v,
+               uint32_t* dv,
+               uint32_t& rxUp) {
+    for(unsigned i=0; i<14; i++) {
+      _index = (0+i)<<4;
+      unsigned q; bool b0,b1,b2;
+      _linkStatus.status(b0,b1,b2,q);
+      dv[i] = q - v[i];
+      v [i] = q;
+      if (b0)
+        rxUp |= (1<<i);
+      else
+        rxUp &= ~(1<<i);
+    }
+  }
   void bpRecvs(uint32_t* v,
-               uint32_t* dv) {
+               uint32_t* dv,
+               uint32_t& rxUp) {
     for(unsigned i=0; i<16; i++) {
       _index = ((16+i)<<4) | (_partn & 0xf);
       unsigned q; bool b0,b1,b2;
       _linkStatus.status(b0,b1,b2,q);
       dv[i] = q - v[i];
       v [i] = q;
+      if (b0)
+        rxUp |= (1<<(16+i));
+      else
+        rxUp &= ~(1<<(16+i));
     }
   }
 };
@@ -192,7 +212,8 @@ static void process(Xpm& xpm)
                                  "ninhibited",
                                  "naccepted " };
   static uint32_t inh[32], dinh[32];
-  static uint32_t rcv[16], drcv[16];
+  static uint32_t dsrcv[16], dsdrcv[16];
+  static uint32_t bprcv[16], bpdrcv[16];
   static bool lLock=false;
 
   printf("link partition: %u\n", _partn);
@@ -206,12 +227,19 @@ static void process(Xpm& xpm)
   for(unsigned i=0; i<32; i++)
     printf("%09u [%09u]%s", inh[i], dinh[i], (i&3)==3 ? "\n":"  ");
 
-  xpm.bpRecvs(rcv,drcv);
+  uint32_t rxUp=0;
+  xpm.dsRecvs(dsrcv,dsdrcv,rxUp);
   for(unsigned i=0; i<7; i++) {
-    printf("  %06u [%06u] (%04x)", rcv[i], drcv[i], rcv[i+8]);
+    printf("  %06u [%06u] (%04x)", dsrcv[i], dsdrcv[i], dsrcv[i+7]);
   }
 
-  printf("\n===\n");
+  xpm.bpRecvs(bprcv,bpdrcv,rxUp);
+  for(unsigned i=0; i<7; i++) {
+    printf("  %06u [%06u] (%04x)", bprcv[i], bpdrcv[i], bprcv[i+8]);
+  }
+  
+  printf("\nrxUp %08x  paddr %08x\n", rxUp, unsigned(xpm._paddr));
+  printf("===\n");
 }
 
 void sigHandler( int signal ) {
@@ -251,6 +279,12 @@ int main(int argc, char** argv) {
   //  Setup XPM
   Pds::Cphw::Reg::set(ip, 8192, 0);
   Xpm* xpm = new (0)Xpm;
+
+  xpm->_timing.ring0.clear();
+  xpm->_timing.ring0.enable(true);
+  usleep(10);
+  xpm->_timing.ring0.enable(false);
+  xpm->_timing.ring0.dump();
 
   if (msg) xpm->message(msg>>32, msg&0xffffffff);
 
