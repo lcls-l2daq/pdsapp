@@ -19,6 +19,7 @@ void usage(const char* p) {
   printf("         -t Align target\n");
   printf("         -x Value to override XBar output mapping with\n");
   printf("         -m Measure and dump clocks\n");
+  printf("         -c Clear counters\n");
 }
 
 int main(int argc, char* argv[])
@@ -33,11 +34,13 @@ int main(int argc, char* argv[])
   bool lInternal = false;
   bool invertPolarity = false;
   bool measureClks = false;
+  bool lClear = false;
   int alignTarget = -1;
   bool lXbar = false;
   unsigned vXbar = 0;
+  bool lDump0=false, lDump1=false;
 
-  while ( (c=getopt( argc, argv, "a:x:2imrRt:h")) != EOF ) {
+  while ( (c=getopt( argc, argv, "a:x:2dDimcrRt:h")) != EOF ) {
     switch(c) {
     case 'a':
       ip = optarg;
@@ -50,6 +53,9 @@ int main(int argc, char* argv[])
       break;
     case 'm':
       measureClks = true;
+      break;
+    case 'c':
+      lClear = true;
       break;
     case 'r':
       lReset = true;
@@ -66,6 +72,12 @@ int main(int argc, char* argv[])
       lXbar = true;
       vXbar = strtoul(optarg,NULL,0);
       break;
+    case 'd':
+      lDump0 = true;
+      break;
+    case 'D':
+      lDump1 = true;
+      break;
     default:
       usage(argv[0]);
       return 0;
@@ -76,6 +88,24 @@ int main(int argc, char* argv[])
 
   Pds::Cphw::AmcTiming* t = new((void*)0) Pds::Cphw::AmcTiming;
   printf("buildStamp %s\n",t->version.buildStamp().c_str());
+
+  if (lDump0) {
+    t->ring0.enable(false);
+    t->ring0.clear();
+    t->ring0.enable(true);
+    usleep(10);
+    t->ring0.enable(false);
+    t->ring0.dump();
+  }
+
+  if (lDump1) {
+    t->ring1.enable(false);
+    t->ring1.clear();
+    t->ring1.enable(true);
+    usleep(10);
+    t->ring1.enable(false);
+    t->ring1.dump();
+  }
 
   if (alignTarget >= 0) {
     t->setRxAlignTarget(alignTarget);
@@ -102,6 +132,7 @@ int main(int argc, char* argv[])
   }
 
   t->xbar.dump();
+
   t->dumpStats();
 
   if (measureClks)
@@ -118,7 +149,12 @@ int main(int argc, char* argv[])
     printf("%10.10s: 0x%08x = %u\n","1S dT(tx)",dTxT, dTxT);
   }
 
-  t->dumpRxAlign();
+  //  t->dumpRxAlign();
+
+  if (lClear)
+    t->resetStats();
+
+  sleep(1);
 
   return 0;
 }
