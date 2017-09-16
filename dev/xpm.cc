@@ -42,7 +42,11 @@ void usage(const char* p) {
 }
 
 void sigHandler( int signal ) {
-  Module::locate()->setL0Enabled(false);
+  Module* m = Module::locate();
+  for(unsigned i=0; i<8; i++) {
+    m->setPartition(i);
+    m->setL0Enabled(false);
+  }
   ::exit(signal);
 }
 
@@ -153,14 +157,14 @@ int main(int argc, char** argv) {
   { uint64_t e[8];
     for(unsigned i=0; i<8; i++) {
       m->setPartition(i);
-      m->resetL0(false);
+      m->resetL0    (false);
       m->lockL0Stats(true);
       e[i] = m->_l0Enabled;
     }
     for(unsigned i=0; i<8; i++) {
       m->setPartition(i);
       m->setL0Enabled(true);
-      m->lockL0Stats(false);
+      m->lockL0Stats (false);
       unsigned vu=0, vr=0, ve=0;
       for(unsigned j=0; j<8; j++) {
         m->setPartition(j);
@@ -174,7 +178,7 @@ int main(int argc, char** argv) {
       }
       usleep(10000*(8-i));
       m->setPartition(i);
-      m->lockL0Stats(true);
+      m->lockL0Stats (true);
       m->setL0Enabled(false);
       printf("lock[%u]: %02x/%02x/%02x:", i, vr,ve,vu);
       for(unsigned j=0; j<8; j++) {
