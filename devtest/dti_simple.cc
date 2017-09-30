@@ -77,7 +77,7 @@ private:  // only what's necessary here
   public:
     Reg _rxErrs;
     Reg _rxFull;
-    Reg _ibRecv;
+    Reg _rxInh;
     Reg _ibEvt;
   } _usLinkStatus;
   class DsLinkStatus {
@@ -163,7 +163,16 @@ public:
       *v++  = q; }
     UFILL(_rxErrs);
     UFILL(_rxFull);
-    UFILL(_ibRecv);
+    { uint32_t q = _usLinkStatus._rxInh;
+      *dv++ = (q - *v)&0xffffff;
+      *v++  = q&0xffffff;
+      *dv++ = ((q>>24)-*v)&0xf;
+      *v++  = (q>>24)&0xf;
+      *dv++ = ((q>>28)-*v)&0xf;
+      *v++  = (q>>28)&0xf; }
+    //    UFILL(_rxInh&0xffffff);
+    //    UFILL(_rxInh&0xf000000>>24);
+    //    UFILL(_rxInh&0xf0000000>>28);
     UFILL(_ibEvt);
 #define DFILL(s) {     \
       uint32_t q = _dsLinkStatus.s; \
@@ -236,12 +245,14 @@ int main(int argc, char** argv) {
   Dti* dti = new (0)Dti;
   dti->start(lRTM);
 
-  uint32_t stats[20], dstats[20];
+  uint32_t stats[22], dstats[22];
   memset(stats, 0, sizeof(stats));
   static const char* title[] = 
     { "usRxErrs   ",
       "usRxFull   ",
-      "usIbRecv   ",
+      "usRxInh    ",
+      "usWrFifoD  ",
+      "usRdFifoD  ",
       "usIbEvt    ",
       "dsRxErrs   ",
       "dsRxFull   ",

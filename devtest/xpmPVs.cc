@@ -73,15 +73,17 @@ namespace Pds {
       string     _module_prefix;
       string     _partition_prefix;
       EpicsCA*   _partPV;
-      PVWriter*  _paddrPV;
+      PVWriter*    _paddrPV;
+      PVWriter*    _fwBuildPV;
       unsigned   _partitions;
       timespec   _t;
       CoreCounts _c;
-      L0Stats    _s   [Pds::Xpm::Module::NPartitions];
-      PVPStats   _pvps[Pds::Xpm::Module::NPartitions];
+      LinkStatus _links[32];
+      L0Stats    _s    [Pds::Xpm::Module::NPartitions];
+      PVPStats   _pvps [Pds::Xpm::Module::NPartitions];
       PVStats    _pvs;
       PVCtrls    _pvc;
-      PVPCtrls*  _pvpc[Pds::Xpm::Module::NPartitions];
+      PVPCtrls*  _pvpc [Pds::Xpm::Module::NPartitions];
       friend class PvAllocate;
     };
 
@@ -138,6 +140,15 @@ void StatsTimer::_allocate()
   { std::stringstream ostr;
     ostr << _module_prefix << ":PAddr";
     _paddrPV = new PVWriter(ostr.str().c_str()); }
+
+#if 1
+  { std::stringstream ostr;
+    ostr << _module_prefix << ":FwBuild";
+    printf("fwbuildpv: %s\n", ostr.str().c_str());
+    _fwBuildPV = new PVWriter(ostr.str().c_str(),256);  }
+#endif
+
+  ca_pend_io(0);
 }
 
 void StatsTimer::updated()  // PARTITIONS updated
@@ -146,8 +157,6 @@ void StatsTimer::updated()  // PARTITIONS updated
 
   printf("StatsTimer::updated  _partitions %08x -> %08x\n",
          _partitions, partitions);
-
-  //  _sem.take();
 
   //
   //  Disable partition control 
@@ -165,13 +174,13 @@ void StatsTimer::updated()  // PARTITIONS updated
   unsigned enabled = partitions & ~_partitions;
   for(unsigned i=0; i<Pds::Xpm::Module::NPartitions; i++) {
     if ((1<<i)&enabled) {
+      _sem.take();
       _dev.setPartition(i);
       _s[i] = _dev.l0Stats();
+      _sem.give();
       _pvpc[i]->enable(true);
     }
   }
-
-  //  _sem.give();
 
   _partitions = partitions;
 }
@@ -199,28 +208,47 @@ void StatsTimer::expired()
 {
   timespec t; clock_gettime(CLOCK_REALTIME,&t);
   CoreCounts c = _dev.counts();
+  LinkStatus links[32];
+  _dev.linkStatus(links);
   double dt = double(t.tv_sec-_t.tv_sec)+1.e-9*(double(t.tv_nsec)-double(_t.tv_nsec));
   _sem.take();
-  _pvs.update(c,_c,dt);
+  _pvs.update(c,_c,links,_links,dt);
   _sem.give();
+  _c=c;
+  std::copy(links,links+Pds::Xpm::Module::NDSLinks,_links);
+  _t=t;
+
   for(unsigned i=0; i<Pds::Xpm::Module::NPartitions; i++) {
     if ((1<<i)&_partitions) {
       _sem.take();
       _dev.setPartition(i);
       L0Stats    s = _dev.l0Stats();
-      _pvps[i].update(s,_s[i],dt);
+      _pvps[i].update(s,_s[i]);
       _sem.give();
       _s[i]=s;
-      printf("-- partition %u --\n",i);
-      s.dump();
+      //      printf("-- partition %u --\n",i);
+      //      _pvpc[i]->dump();
+      //      s.dump();
     }
   }
+  _pvc.dump();
 
-  _c=c;
-  _t=t;
+  if (_paddrPV->connected()) {
+    *reinterpret_cast<unsigned*>(_paddrPV->data()) = _dev._paddr; 
+    _paddrPV->put();
+  }
+  else
+    printf("paddrpv not connected\n");
 
-  *reinterpret_cast<unsigned*>(_paddrPV->data()) = _dev._paddr; 
-  _paddrPV->put();
+#if 1
+  if (_fwBuildPV && _fwBuildPV->connected()) {
+    std::string bld = _dev._timing.version.buildStamp();
+    strncpy(reinterpret_cast<char*>(_fwBuildPV->data()), bld.c_str(), 80);
+    printf("fwBuild: %s\n",bld.c_str());
+    _fwBuildPV->put();
+    _fwBuildPV = 0;
+  }
+#endif
 
   ca_flush_io();
 }

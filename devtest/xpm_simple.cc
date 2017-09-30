@@ -37,6 +37,7 @@ void usage(const char* p) {
   printf("         -t <partition>                 : Link partition (default=0)\n");
   printf("         -k                             : Keep running on exit\n");
   printf("         -e                             : Enable DTI link\n");
+  printf("         -m <message>                   : Insert 47-bit message (ULL)\n");
 }
 
 class Xpm {
@@ -125,7 +126,7 @@ public:
     _msgPayload = payload;
     _msgHeader  = (header&0x7fff) | (1<<15); // must be last
   }
-  void start(unsigned rate, bool lEnableDTI) {
+  void start(unsigned rate, unsigned dtiMask) {
     //  Drive backplane
     _timing.xbar.setOut( XBar::BP, XBar::FPGA );
 
@@ -133,11 +134,13 @@ public:
     _index = (5<<4) | (_partn & 0xf);  // FP to RTM
     _linkConfig.setup(false);
 
-    _index = (16<<4) | (_partn & 0xf);  // BP broadcast
+    _index = (16<<4) | (_partn & 0xf);  // BP broadcast channel
     _linkConfig.setup(true);
 
-    _index = (17<<4) | (_partn & 0xf);  // BP channel 1
-    _linkConfig.setup(lEnableDTI);
+    for(unsigned i=0; i<7; i++) {
+      _index = ((17+i)<<4) | (_partn & 0xf);  // BP channel i
+      _linkConfig.setup( dtiMask & (1<<i) );
+    }
 
     // Setup partition
     _partitionL0Config.start(rate);
@@ -171,8 +174,8 @@ public:
       FILL(i);
 #undef FILL
   }
-  void dsRecvs(uint32_t* v,
-               uint32_t* dv,
+  void dsRecvs(uint16_t* v,
+               uint16_t* dv,
                uint32_t& rxUp) {
     for(unsigned i=0; i<14; i++) {
       _index = (0+i)<<4;
@@ -186,8 +189,8 @@ public:
         rxUp &= ~(1<<i);
     }
   }
-  void bpRecvs(uint32_t* v,
-               uint32_t* dv,
+  void bpRecvs(uint16_t* v,
+               uint16_t* dv,
                uint32_t& rxUp) {
     for(unsigned i=0; i<16; i++) {
       _index = ((16+i)<<4) | (_partn & 0xf);
@@ -212,8 +215,8 @@ static void process(Xpm& xpm)
                                  "ninhibited",
                                  "naccepted " };
   static uint32_t inh[32], dinh[32];
-  static uint32_t dsrcv[16], dsdrcv[16];
-  static uint32_t bprcv[16], bpdrcv[16];
+  static uint16_t dsrcv[16], dsdrcv[16];
+  static uint16_t bprcv[16], bpdrcv[16];
   static bool lLock=false;
 
   printf("link partition: %u\n", _partn);
@@ -230,15 +233,15 @@ static void process(Xpm& xpm)
   uint32_t rxUp=0;
   xpm.dsRecvs(dsrcv,dsdrcv,rxUp);
   for(unsigned i=0; i<7; i++) {
-    printf("  %06u [%06u] (%04x)", dsrcv[i], dsdrcv[i], dsrcv[i+7]);
+    printf("  DS%i: %06u [%06u] (%04x)\n", i, dsrcv[i], dsdrcv[i], dsrcv[i+7]);
   }
 
   xpm.bpRecvs(bprcv,bpdrcv,rxUp);
   for(unsigned i=0; i<7; i++) {
-    printf("  %06u [%06u] (%04x)", bprcv[i], bpdrcv[i], bprcv[i+8]);
+    printf("  BP%i: %06u [%06u] (%04x)\n", i, bprcv[i], bpdrcv[i], bprcv[i+8]);
   }
   
-  printf("\nrxUp %08x  paddr %08x\n", rxUp, unsigned(xpm._paddr));
+  printf("rxUp %08x  paddr %08x\n", rxUp, unsigned(xpm._paddr));
   printf("===\n");
 }
 
@@ -259,13 +262,14 @@ int main(int argc, char** argv) {
 
   const char* ip  = "10.0.1.102";
   unsigned fixed_rate = 6;
-  bool lEnableDTI=false;
+  unsigned dtiMask = 0;
   uint64_t msg=0;
 
-  while ( (c=getopt( argc, argv, "a:em:r:t:kh")) != EOF ) {
+  while ( (c=getopt( argc, argv, "a:d:em:r:t:kh")) != EOF ) {
     switch(c) {
     case 'a': ip = optarg; break;
-    case 'e': lEnableDTI=true; break;
+    case 'd': dtiMask = strtoul(optarg,NULL,0); break;
+    case 'e': dtiMask = 1; break;
     case 'm': msg = strtoull(optarg,NULL,0); msg |= 1ULL<<48; break;
     case 'r': fixed_rate = strtoul(optarg,NULL,0); break;
     case 't': _partn = strtoul(optarg, NULL, 0); break;
@@ -288,7 +292,7 @@ int main(int argc, char** argv) {
 
   if (msg) xpm->message(msg>>32, msg&0xffffffff);
 
-  xpm->start(fixed_rate, lEnableDTI);
+  xpm->start(fixed_rate, dtiMask);
 
   while(1) {
     sleep(1);
