@@ -53,16 +53,18 @@ private:  // only what's necessary here
     Reg _dataType;
     uint32_t _reserved;
   public:
-    void enable(unsigned fwdmask,
-                unsigned delay) {
+    void enable(unsigned fwdmask, bool hdrOnly=false) {
+      unsigned control;
       if (fwdmask) {
         // enable=T, tagEnable=F, L1Enable=F, fwdMode=RR
-        _control = 1 | ((_partn&0xf)<<4) | ((delay&0xff)<<8) | ((fwdmask&0x1fff)<<16);
-        //        _control = 1 | ((delay&0xff)<<8) | ((0&0x1fff)<<16);
+        control = 1 | ((_partn&0xf)<<4) | ((fwdmask&0x1fff)<<16);
+        if (hdrOnly) 
+          control |= (1<<3);
       }
       else {
-        _control = 0;
+        control = 0;
       }
+      _control = control;
     }
   } _usLink[7];
   Reg _linkUp; // [6:0]=us, [15]=bp, [28:16]=ds
@@ -126,7 +128,7 @@ public:
     b->dump();
     printf("\n");
   }
-  void start(bool lRTM)
+  void start(bool lRTM, bool hdrOnly=false)
   {
     //  XPM connected through RTM
     _timing.xbar.setOut( XBar::RTM0, XBar::FPGA );
@@ -139,7 +141,7 @@ public:
 #ifndef NO_DSPGP
     _pgp[1]._countReset = 1;
 #endif
-    _usLink[0].enable(0x1, 0);
+    _usLink[0].enable(0x1, hdrOnly);
 
     _pgp[0]._countReset = 0;
 #ifndef NO_DSPGP
@@ -227,13 +229,15 @@ int main(int argc, char** argv) {
 
   const char* ip  = "10.0.1.103";
   bool lRTM = false;
+  bool lHdrOnly = false;
 
-  while ( (c=getopt( argc, argv, "a:t:rkh")) != EOF ) {
+  while ( (c=getopt( argc, argv, "a:t:rkHh")) != EOF ) {
     switch(c) {
     case 'a': ip = optarg; break;
     case 't': _partn = strtoul(optarg, NULL, 0); break;
     case 'r': lRTM = true; break;
     case 'k': _keepRunning = true; break;
+    case 'H': lHdrOnly = true; break;
     case 'h': default:  usage(argv[0]); return 0;
     }
   }
@@ -243,7 +247,7 @@ int main(int argc, char** argv) {
   //  Setup DTI
   Pds::Cphw::Reg::set(ip, 8192, 0);
   Dti* dti = new (0)Dti;
-  dti->start(lRTM);
+  dti->start(lRTM,lHdrOnly);
 
   uint32_t stats[22], dstats[22];
   memset(stats, 0, sizeof(stats));
