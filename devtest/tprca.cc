@@ -758,7 +758,7 @@ namespace Pds {
 
       printf("FpgaVersion: %08x\n", p->version.FpgaVersion);
       printf("BuildStamp: %s\n", p->version.buildStamp().c_str());
-
+      
       p->xbar.dump();
       p->tpr.dump();
       p->base.dump();
@@ -807,9 +807,10 @@ namespace Pds {
     void report(double dt) {
       { unsigned v = _dev->tpr.CSR;
         unsigned v_delta = v ^ _CSR;
-        if (v_delta & (1<<1))
+        //        printf("v %x  csr %x  delta %x\n",v,_CSR,v_delta);
+        //        if (v_delta & (1<<1))
           PVPUT( _linkState, (v&(1<<1)?1:0) );
-        if (v_delta & (1<<5))
+          //        if (v_delta & (1<<5))
           PVPUT( _linkLatch, (v&(1<<5)?1:0) );
         _CSR = v;
       }

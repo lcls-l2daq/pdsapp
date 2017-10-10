@@ -161,7 +161,7 @@ tgtincs_netlink :=
 libnames :=
 #tgtnames := tasktest xcasttest quadadc quadadc_dma amctiming
 #tgtnames := tasktest xcasttest quadadc quadadc_dma quadadc_mon quadadc_cal amctiming amcmonitor tprca
-tgtnames := tasktest xcasttest amctiming amcmonitor tprca xpm_simple dti_simple dtireg dti_links xpm_links xpmPVs dtiPVs
+tgtnames := tasktest xcasttest amctiming amcmonitor tprca xpm_simple dti_simple dtireg dti_links dti_eyescan xpm_links xpmPVs dtiPVs
 
 tgtsrcs_tasktest := tasktest.cc
 tgtlibs_tasktest := pds/service pdsdata/xtcdata
@@ -357,6 +357,13 @@ tgtslib_dti_simple := rt dl
 
 #tgtnames := dti_simple
 
+tgtsrcs_dti_eyescan := dti_eyescan.cc
+tgtincs_dti_eyescan := cpsw/include cpsw_boost/include yaml/include
+tgtlibs_dti_eyescan := pds/cphw cpsw/cpsw yaml/yaml-cpp
+tgtslib_dti_eyescan := rt dl pthread
+
+#tgtnames := dti_eyescan
+
 tgtsrcs_dti_links := dti_links.cc
 tgtincs_dti_links := cpsw/include cpsw_boost/include yaml/include
 tgtlibs_dti_links := pds/cphw cpsw/cpsw yaml/yaml-cpp
@@ -395,3 +402,10 @@ tgtlibs_dtiPVs += pds/epicstools epics/ca epics/Com
 tgtslib_dtiPVs := rt pthread
 
 #tgtnames := dtiPVs
+
+tgtsrcs_usdutil := usdutil.cc
+tgtincs_usdutil := usdusb4/include libusb/include/libusb-1.0
+tgtlibs_usdutil := $(commonlibs) usdusb4/usdusb4 libusb/usb-1.0
+tgtslib_usdutil := rt pthread
+
+tgtnames += usdutil
